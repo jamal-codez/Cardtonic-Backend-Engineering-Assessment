@@ -42,4 +42,30 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Supertest response bodies are untyped (`any`); asserting on them is the point of the tests.
+    files: ['test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+    },
+  },
+  {
+    // Deposits and same-currency transfers never touch the FX module.
+    files: ['src/payments/deposits/**/*.ts', 'src/wallets/**/*.ts', 'src/idempotency/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/fx', '**/fx/**'],
+              message: 'deposits must never import the fx module',
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

@@ -92,6 +92,27 @@ describe('ProblemJsonFilter', () => {
     expect(headers['Retry-After']).toBe('1');
   });
 
+  it('never logs the bound parameters of a wrapped database error (no raw email or phone)', () => {
+    const { host } = makeHost();
+    const logSpy = jest.spyOn(filter['logger'], 'error');
+    const driverError = Object.assign(new Error('statement timeout'), { code: '57014' });
+    const wrapper = Object.assign(
+      new Error('Failed query: insert into wallets\nparams: ada@example.com,+2348031234567'),
+      {
+        query: 'insert into wallets (email) values ($1)',
+        params: ['ada@example.com', '+2348031234567'],
+        cause: driverError,
+      },
+    );
+
+    filter.catch(wrapper, host);
+
+    const logged = JSON.stringify(logSpy.mock.calls);
+    expect(logged).not.toContain('ada@example.com');
+    expect(logged).not.toContain('+2348031234567');
+    expect(logged).toContain('57014');
+  });
+
   it('hides unknown error details behind INTERNAL_ERROR', () => {
     const { host, sent } = makeHost();
     jest.spyOn(filter['logger'], 'error').mockImplementation(() => undefined);

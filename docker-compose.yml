@@ -28,6 +28,7 @@ services:
       SCHEDULERS_ENABLED: 'true'
       REQUEST_TIMEOUT_MS: '10000'
       MAX_TX_AMOUNT: '1000000000'
+      IDEMPOTENCY_TTL_HOURS: '24'
     ports:
       - '3000:3000'
 

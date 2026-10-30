@@ -23,7 +23,7 @@ const config: Config = {
       testMatch: ['**/*.int-spec.ts'],
       globalSetup: '<rootDir>/test/global-setup.ts',
       globalTeardown: '<rootDir>/test/global-teardown.ts',
-      testTimeout: 30_000,
+      setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
     },
   ],
 };

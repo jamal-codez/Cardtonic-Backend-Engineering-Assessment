@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
 import { DRIZZLE } from '../common/db/database.module';
+import { CURRENCY_CODES } from '../common/money/currency';
 import {
   accounts,
   ledgerEntries,
@@ -29,6 +30,19 @@ export class LedgerService {
   private readonly systemAccountIds = new Map<string, string>();
 
   constructor(@Inject(DRIZZLE) private readonly db: Db) {}
+
+  /** Opens one zero-balance user account per supported currency. Only the ledger writes accounts. */
+  async openUserAccounts(tx: Db, walletId: string): Promise<void> {
+    await tx.insert(accounts).values(
+      CURRENCY_CODES.map((currency) => ({
+        id: uuidv7(),
+        walletId,
+        currency,
+        kind: 'user',
+        balance: 0n,
+      })),
+    );
+  }
 
   /** Unlocked read. Never use it for an overdraft check; `post` re-reads under `FOR UPDATE`. */
   async getUserAccounts(

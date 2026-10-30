@@ -1,10 +1,10 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, Logger } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AppError } from './app-error';
-import { mapPgError } from './pg-error-mapper';
+import { mapPgError, pgErrorCode } from './pg-error-mapper';
 import { ERROR_CATALOGUE, type ErrorCode, type FieldError } from './error-catalogue';
 
-interface Problem {
+export interface Problem {
   type: string;
   title: string;
   status: number;
@@ -20,6 +20,23 @@ interface ResolvedError {
   detail: string;
   errors?: FieldError[];
   retryAfterSeconds?: number;
+}
+
+/** RFC 9457 body for an error; also used to store a business rejection against an idempotency key. */
+export function buildProblem(
+  error: { code: ErrorCode; status: number; detail: string; errors?: FieldError[] },
+  requestId: string,
+): Problem {
+  const slug = error.code.toLowerCase().replace(/_/g, '-');
+  return {
+    type: `urn:problem:${slug}`,
+    title: ERROR_CATALOGUE[error.code].title,
+    status: error.status,
+    detail: error.detail,
+    code: error.code,
+    request_id: requestId,
+    ...(error.errors ? { errors: error.errors } : {}),
+  };
 }
 
 const STATUS_TO_CODE: Record<number, ErrorCode> = {
@@ -39,11 +56,36 @@ const CONNECTION_ERROR_CODES = new Set(['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT
 
 function isConnectionError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  const code = (error as { code?: unknown }).code;
+  // Drizzle wraps driver errors; look at the original too.
+  const messages = [error.message, error.cause instanceof Error ? error.cause.message : ''];
+  const code = pgErrorCode(error);
   return (
-    (typeof code === 'string' && CONNECTION_ERROR_CODES.has(code)) ||
-    /timeout exceeded when trying to connect|Connection terminated/i.test(error.message)
+    (code !== undefined && CONNECTION_ERROR_CODES.has(code)) ||
+    messages.some((m) => /timeout exceeded when trying to connect|Connection terminated/i.test(m))
   );
+}
+
+/**
+ * Drizzle's wrapper error carries the SQL text and bound parameters (which can hold an email or
+ * phone) in its message, `query` and `params`. Log the underlying driver error instead, and only
+ * its name, message, SQLSTATE and stack: never the `detail` field, which echoes row values.
+ */
+function safeErrorForLog(error: unknown): Record<string, unknown> {
+  let current: unknown = error;
+  for (let depth = 0; depth < 5; depth++) {
+    if (!(current instanceof Error)) break;
+    const isDriverWrapper = 'query' in current && 'params' in current;
+    if (!isDriverWrapper) break;
+    current = current.cause;
+  }
+  if (!(current instanceof Error)) return { message: 'non-error value thrown' };
+  const code = pgErrorCode(current);
+  return {
+    name: current.name,
+    message: current.message,
+    ...(code ? { pgCode: code } : {}),
+    stack: current.stack,
+  };
 }
 
 @Catch()
@@ -64,21 +106,12 @@ export class ProblemJsonFilter implements ExceptionFilter {
 
     if (resolved.status >= 500) {
       this.logger.error(
-        { err: exception, request_id: requestId, code: resolved.code },
+        { err: safeErrorForLog(exception), request_id: requestId, code: resolved.code },
         'Request failed',
       );
     }
 
-    const slug = resolved.code.toLowerCase().replace(/_/g, '-');
-    const body: Problem = {
-      type: `urn:problem:${slug}`,
-      title: ERROR_CATALOGUE[resolved.code].title,
-      status: resolved.status,
-      detail: resolved.detail,
-      code: resolved.code,
-      request_id: requestId,
-      ...(resolved.errors ? { errors: resolved.errors } : {}),
-    };
+    const body = buildProblem(resolved, requestId);
 
     if (resolved.retryAfterSeconds !== undefined || resolved.status === 503) {
       res.setHeader('Retry-After', String(resolved.retryAfterSeconds ?? 1));

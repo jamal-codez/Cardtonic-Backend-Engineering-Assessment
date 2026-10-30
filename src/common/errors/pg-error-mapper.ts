@@ -3,10 +3,21 @@ import type { ErrorCode } from './error-catalogue';
 
 export const RETRYABLE_PG_CODES: ReadonlySet<string> = new Set(['40P01', '40001', '55P03']);
 
+const MAX_CAUSE_DEPTH = 5;
+
+/**
+ * The SQLSTATE of a Postgres error. Drizzle wraps driver errors (DrizzleQueryError) and keeps
+ * the original in `cause`, so the cause chain is followed.
+ */
 export function pgErrorCode(error: unknown): string | undefined {
-  if (typeof error !== 'object' || error === null) return undefined;
-  const code = (error as { code?: unknown }).code;
-  return typeof code === 'string' ? code : undefined;
+  let current: unknown = error;
+  for (let depth = 0; depth < MAX_CAUSE_DEPTH; depth++) {
+    if (typeof current !== 'object' || current === null) return undefined;
+    const { code, cause } = current as { code?: unknown; cause?: unknown };
+    if (typeof code === 'string') return code;
+    current = cause;
+  }
+  return undefined;
 }
 
 export function isRetryablePgError(error: unknown): boolean {
