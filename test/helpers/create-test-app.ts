@@ -7,6 +7,7 @@ import { AppModule } from '../../src/app.module';
 import { CLOCK, FakeClock } from '../../src/common/clock/clock';
 import { PG_POOL, TransactionRunner } from '../../src/common/db/database.module';
 import { configureApp } from '../../src/configure-app';
+import { RateService } from '../../src/fx/rate.service';
 import { LedgerService } from '../../src/ledger/ledger.service';
 import { resetDb } from './reset-db';
 
@@ -16,8 +17,9 @@ export interface TestApp {
   agent: ReturnType<typeof request>;
   pool: Pool;
   ledger: LedgerService;
+  rates: RateService;
   transactions: TransactionRunner;
-  /** Truncates all tables except currencies, reseeds and clears the ledger's id cache. */
+  /** Truncates all tables except currencies, reseeds, clears the ledger's id cache and reloads FX rates. */
   reset(): Promise<void>;
   close(): Promise<void>;
 }
@@ -48,6 +50,7 @@ export async function createTestApp(): Promise<TestApp> {
 
   const pool = app.get<Pool>(PG_POOL);
   const ledger = app.get(LedgerService);
+  const rates = app.get(RateService);
 
   return {
     app,
@@ -55,10 +58,12 @@ export async function createTestApp(): Promise<TestApp> {
     agent: request(app.getHttpServer()),
     pool,
     ledger,
+    rates,
     transactions: app.get(TransactionRunner),
     reset: async () => {
       await resetDb(pool);
       ledger.clearSystemAccountCache();
+      await rates.initialize();
     },
     close: () => app.close(),
   };

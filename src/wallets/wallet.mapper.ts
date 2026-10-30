@@ -1,6 +1,7 @@
 import type { wallets } from '../common/db/schema';
 import { CURRENCY_CODES } from '../common/money/currency';
 import { formatAmount } from '../common/money/money';
+import type { UsdValue } from '../fx/rate.service';
 import type { UserAccount } from '../ledger/ledger.types';
 
 export type WalletRow = typeof wallets.$inferSelect;
@@ -17,6 +18,14 @@ export interface WalletResource {
   status: string;
   created_at: string;
   balances: BalanceResource[];
+  total_usd: TotalUsdResource;
+}
+
+export interface TotalUsdResource {
+  amount: string;
+  rates_as_of: string;
+  source: string;
+  indicative: true;
 }
 
 /** Always all supported coins in registry order, zero when the account is missing. */
@@ -27,7 +36,20 @@ export function toBalanceResources(accounts: UserAccount[]): BalanceResource[] {
   });
 }
 
-export function toWalletResource(wallet: WalletRow, accounts: UserAccount[]): WalletResource {
+export function toTotalUsdResource(total: UsdValue): TotalUsdResource {
+  return {
+    amount: total.amount,
+    rates_as_of: total.ratesAsOf.toISOString(),
+    source: total.source,
+    indicative: true,
+  };
+}
+
+export function toWalletResource(
+  wallet: WalletRow,
+  accounts: UserAccount[],
+  total: UsdValue,
+): WalletResource {
   return {
     id: wallet.id,
     email: wallet.email,
@@ -35,5 +57,6 @@ export function toWalletResource(wallet: WalletRow, accounts: UserAccount[]): Wa
     status: wallet.status,
     created_at: wallet.createdAt.toISOString(),
     balances: toBalanceResources(accounts),
+    total_usd: toTotalUsdResource(total),
   };
 }

@@ -31,6 +31,7 @@ export default tseslint.config(
         'error',
         { object: 'Number', property: 'parseFloat', message: moneyMessage },
         { object: 'Number', property: 'parseInt', message: moneyMessage },
+        { object: 'Date', property: 'now', message: 'use the injected Clock' },
         { property: 'toFixed', message: moneyMessage },
       ],
       'no-restricted-syntax': [
@@ -38,6 +39,10 @@ export default tseslint.config(
         {
           selector: "CallExpression[callee.name='Number'], NewExpression[callee.name='Number']",
           message: moneyMessage,
+        },
+        {
+          selector: "NewExpression[callee.name='Date'][arguments.length=0]",
+          message: 'use the injected Clock instead of new Date()',
         },
       ],
     },
@@ -49,11 +54,31 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
     },
   },
   {
-    // Deposits and same-currency transfers never touch the FX module.
-    files: ['src/payments/deposits/**/*.ts', 'src/wallets/**/*.ts', 'src/idempotency/**/*.ts'],
+    // Only RateService is public: everything outside fx/ may import fx/rate.service and fx/fx.module.
+    files: ['src/**/*.ts'],
+    ignores: ['src/fx/**', 'src/**/*.spec.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/fx/**', '!**/fx/rate.service', '!**/fx/fx.module'],
+              message: 'only fx/rate.service and fx/fx.module may be imported from outside fx',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Deposits and same-currency transfers never touch the FX module (declared after the block
+    // above so this stricter rule wins for these files).
+    files: ['src/payments/deposits/**/*.ts', 'src/idempotency/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -66,6 +91,13 @@ export default tseslint.config(
           ],
         },
       ],
+    },
+  },
+  {
+    // The clock is the one place allowed to read the system time.
+    files: ['src/common/clock/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': 'off',
     },
   },
 );

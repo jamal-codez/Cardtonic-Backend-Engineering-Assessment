@@ -23,6 +23,7 @@ COPY --chown=node:node --from=prod-deps /app/node_modules ./node_modules
 COPY --chown=node:node --from=build /app/dist ./dist
 COPY --chown=node:node package.json ./
 COPY --chown=node:node drizzle ./drizzle
+COPY --chown=node:node config ./config
 COPY --chown=node:node --chmod=755 scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
 USER node
 EXPOSE 3000

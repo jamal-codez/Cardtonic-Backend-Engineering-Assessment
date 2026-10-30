@@ -71,7 +71,7 @@ describe('migrations', () => {
         const { rows } = await scratch.query<{ n: number }>(
           'SELECT count(*)::int AS n FROM drizzle.__drizzle_migrations',
         );
-        expect(rows[0]?.n).toBe(3);
+        expect(rows[0]?.n).toBe(4);
       } finally {
         await scratch.end();
       }

@@ -16,8 +16,14 @@ describe('health', () => {
     expect(res.body).toEqual({ status: 'ok' });
   });
 
-  it('GET /health/ready returns 200 with the database check up', async () => {
+  it('GET /health/ready returns 200 with the database and fx checks up', async () => {
     const res = await t.agent.get('/health/ready').expect(200);
-    expect(res.body).toEqual({ status: 'ok', checks: { database: 'up' } });
+    expect(res.body).toEqual({
+      status: 'ok',
+      checks: {
+        database: 'up',
+        fx: { loaded: true, source: 'static', as_of: expect.stringMatching(/Z$/) },
+      },
+    });
   });
 });

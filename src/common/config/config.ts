@@ -12,6 +12,9 @@ export const configSchema = z.object({
   /** Per-transaction cap in whole units. */
   MAX_TX_AMOUNT: z.coerce.bigint().positive().default(1_000_000_000n),
   IDEMPOTENCY_TTL_HOURS: z.coerce.number().int().min(1).default(24),
+  FX_PROVIDER: z.enum(['static', 'live']).default('static'),
+  // Above 2^31-1 ms Node clamps setInterval to 1 ms, which would hammer the provider.
+  FX_REFRESH_INTERVAL_MS: z.coerce.number().int().min(5000).max(86_400_000).default(60_000),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;

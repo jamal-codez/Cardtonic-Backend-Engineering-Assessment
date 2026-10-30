@@ -140,3 +140,58 @@ Template for each entry: Context, Options, Decision, Consequences.
 - **Context:** The architecture rules say only `ledger/` writes account rows and balances.
 - **Decision:** Wallet creation calls `LedgerService.openUserAccounts`, which inserts the five zero-balance accounts; `wallets/` writes the wallet row only.
 - **Consequences:** `wallets/` depends on `ledger/`, not the other way round.
+
+## D23. Rates are refreshed in the background, not fetched per request
+
+- **Context:** A swap or a wallet read needs a rate. A provider call takes tens to thousands of milliseconds and can fail.
+- **Options:** (a) Fetch on every request. (b) Cache with a TTL and fetch on a miss. (c) Refresh on a schedule (`FX_REFRESH_INTERVAL_MS`, default 60s) and serve from memory.
+- **Decision:** (c). `RateService` keeps the current snapshot in memory, `refresh()` replaces it, and the scheduler calls it. Every fetch is stored in `fx_rate_snapshots`, and boot loads the latest stored snapshot (or seeds a static one), so a restart never starts with no rates.
+- **Consequences:** Requests never wait on a provider and a provider outage does not stop swaps (they use the last snapshot, whose age is visible as `as_of`). Cost: rates can be up to one interval old. Phase 8 decides when a snapshot is too old to use. All `fetch` work happens before any database transaction starts. A refresh that is already running is shared by overlapping callers.
+
+## D24. Every rate pivots through USD
+
+- **Context:** Five coins give 20 ordered pairs. Quoting each pair separately could produce inconsistent loops.
+- **Decision:** One table of fiat per 1 USD; `rate(from, to) = usd[to] / usd[from]`.
+- **Consequences:** There is no triangular arbitrage: converting A to B to C never yields more than A to C directly, because each hop only rounds down. Cross rates (NGN to GHS) are derived, not sourced. The cost is that a provider with a better direct quote for one pair is not used.
+
+## D25. Rates are rounded down to 12 decimals and that exact string is recorded
+
+- **Context:** `usd[to] / usd[from]` is usually an infinite decimal. The recorded rate, the quote shown to the user and the conversion must be the same number, or a reviewer cannot reproduce a destination amount from the stored row.
+- **Decision:** Compute with the Decimal clone (40 digits, round down), floor to 12 decimals, print exactly 12 decimals, and use that string for `destination = floor(source x rate)`. The string is built from a scaled bigint, so no number formatter is involved. Flooring at 40 digits and then at 12 decimals equals one floor at 12 decimals.
+- **Consequences:** Conversions are reproducible from the stored `rate`. The system always rounds against the customer by at most one unit of the 12th decimal, never in their favour. For example 1500 cNGN is worth 0.999999 USD, not 1.000000.
+
+## D26. Coins are pegged 1:1 to their fiat, with no spread
+
+- **Context:** The sandbox needs deterministic conversions.
+- **Decision:** cNGN is NGN, USDx is USD and so on; the coin rate is the fiat rate. No fee and no bid/ask spread is applied.
+- **Consequences:** The rates endpoint shows mid rates only. Adding a spread would be a change in `RateService.getRate`, nowhere else.
+
+## D27. Static provider, snapshot log and boot behaviour
+
+- **Context:** The live provider arrives in phase 8.
+- **Decision:** `StaticFxProvider` reads `config/static-rates.json` (illustrative values, labelled as such) once at construction; its `providerUpdatedAt` is that load time from the injected `Clock`. With an empty table the service boots from the static provider; `refresh()` uses the configured provider. `FX_PROVIDER=live` fails at boot with a readable error until phase 8. `fx_rate_snapshots` is a plain log (no append-only trigger).
+- **Consequences:** With the static provider every scheduled refresh stores an identical row (about 1,440 a day at the default interval). No retention job exists; the table is tiny and it is easy to add later. The test reset helper truncates the table and reloads the service so each test starts from a fresh static snapshot.
+
+## D28. USD totals floor each balance; the rates endpoint uses registry order
+
+- **Context:** `total_usd` is indicative, not an accounting figure.
+- **Decision:** Each balance is converted to USD minor units with the recorded rate and floored on its own, then summed, then printed rounded down to 2 decimals. One minor unit of cNGN contributes 0. `GET /v1/fx/rates` lists pairs by `from` then `to` in registry order (cNGN, cGHS, cXAF, USDx, EURx), the same order as wallet balances, not alphabetically.
+- **Consequences:** The total never overstates. Clients that want another order sort themselves.
+
+## D29. Who may see the rate service
+
+- **Context:** `RateService` is the only class that knows about providers.
+- **Decision:** Its public surface is `getRate`, `usdValue`, plus the read-only `getRateMatrix` and `status` used by the rates endpoint and readiness, and `refresh`/`initialize` for the scheduler and tests. `wallets/` may import only `fx/rate.service` and `fx/fx.module` (for `total_usd`); `payments/deposits` and `idempotency` may import nothing from `fx/`. Both rules are ESLint `no-restricted-imports`.
+- **Consequences:** Swaps and transfers (later phases) will import `RateService` in their own modules; deposits and same-currency transfers still cannot. The general rule covers every module outside `fx/`: only `fx/rate.service` and `fx/fx.module` can be imported, so provider and store classes stay private to `fx/`. The stricter rule for deposits and idempotency is declared after it so it wins for those files.
+
+## D30. A rate table is only accepted if every conversion from it is safe
+
+- **Context:** A provider or a stored row could carry a table that parses as decimals but breaks conversion: a quotient with 14 or more whole digits fails `convert`'s 12-decimal, 13-digit rate contract, a tiny one floors to `0.000000000000`, and a huge one prints in exponent form. That would have turned wallet reads into 500s, and a bad stored row would have survived restarts.
+- **Decision:** `usdRatesSchema` (used for the static file, every provider response and every stored snapshot) requires all five fiats, USD exactly 1, plain decimal strings of at most 32 characters, and each rate between 0.001 and 10,000,000 per USD. That bound keeps every one of the 20 cross rates between 1e-10 and 1e10, which always fits the contract; a property test checks it. `FX_REFRESH_INTERVAL_MS` is limited to 5 seconds to 24 hours, because Node clamps larger intervals to 1 ms.
+- **Consequences:** An out-of-range table is rejected and the previous snapshot stays in use. Legitimate currencies outside the range (a fiat worth less than 0.001 USD or more than 10 million per USD) would need the bounds widened together with the rate contract.
+
+## D31. Refresh is bounded and cannot go backwards
+
+- **Context:** A hung database insert would pin the shared in-flight refresh forever, and a slow older fetch could overwrite a newer snapshot.
+- **Decision:** The whole refresh (provider call and insert) has a 15 second deadline, after which it fails and the next refresh can run. A fetched snapshot is only swapped in if it was stored at or after the current one. At boot, `latest()` skips unreadable rows (looking at the newest 20) so one bad row cannot hide a good older snapshot.
+- **Consequences:** A failed or abandoned refresh keeps serving the last good snapshot. Snapshot age limits and a circuit breaker are phase 8.

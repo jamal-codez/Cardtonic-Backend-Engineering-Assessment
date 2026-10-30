@@ -1,0 +1,11 @@
+{
+  "_comment": "ILLUSTRATIVE VALUES ONLY. These are not market data and must not be used for real conversions. Units of each fiat per 1 USD; USD must be exactly 1.",
+  "base": "USD",
+  "rates": {
+    "USD": "1",
+    "NGN": "1500",
+    "GHS": "15",
+    "XAF": "600",
+    "EUR": "0.92"
+  }
+}

@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ClockModule } from './common/clock/clock.module';
 import { ConfigModule } from './common/config/config.module';
 import { DatabaseModule } from './common/db/database.module';
 import { RequestTimeoutInterceptor } from './common/http/request-timeout.interceptor';
 import { LoggingModule } from './common/logging/logging.module';
+import { FxModule } from './fx/fx.module';
 import { HealthModule } from './health/health.module';
 import { IdempotencyModule } from './idempotency/idempotency.module';
 import { LedgerModule } from './ledger/ledger.module';
@@ -18,6 +20,8 @@ import { WalletsModule } from './wallets/wallets.module';
     ClockModule,
     DatabaseModule,
     LedgerModule,
+    ScheduleModule.forRoot(),
+    FxModule,
     IdempotencyModule,
     WalletsModule,
     PaymentsModule,

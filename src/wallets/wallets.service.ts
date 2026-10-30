@@ -7,6 +7,7 @@ import type { Db } from '../common/db/with-transaction';
 import { AppError } from '../common/errors/app-error';
 import { mapPgError } from '../common/errors/pg-error-mapper';
 import { CURRENCY_CODES } from '../common/money/currency';
+import { RateService } from '../fx/rate.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { normalizeEmail, normalizePhone } from './identity';
 import { toWalletResource, type WalletResource } from './wallet.mapper';
@@ -22,6 +23,7 @@ export class WalletsService {
     @Inject(DRIZZLE) private readonly db: Db,
     private readonly transactions: TransactionRunner,
     private readonly ledger: LedgerService,
+    private readonly rates: RateService,
   ) {}
 
   /**
@@ -48,7 +50,7 @@ export class WalletsService {
         if (!wallet) throw new AppError('INTERNAL_ERROR', { detail: 'Wallet insert failed' });
         await this.ledger.openUserAccounts(tx, wallet.id);
         const accounts = await this.ledger.getUserAccounts(wallet.id, [...CURRENCY_CODES], tx);
-        return toWalletResource(wallet, accounts);
+        return toWalletResource(wallet, accounts, this.rates.usdValue(accounts));
       });
     } catch (error) {
       // The detail stays generic on purpose: never reveal which identifier clashed or who owns it.
@@ -61,6 +63,6 @@ export class WalletsService {
     const [wallet] = await this.db.select().from(wallets).where(eq(wallets.id, id));
     if (!wallet) throw new AppError('WALLET_NOT_FOUND');
     const accounts = await this.ledger.getUserAccounts(id, [...CURRENCY_CODES]);
-    return toWalletResource(wallet, accounts);
+    return toWalletResource(wallet, accounts, this.rates.usdValue(accounts));
   }
 }

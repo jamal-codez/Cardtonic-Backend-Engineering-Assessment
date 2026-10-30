@@ -8,7 +8,7 @@ import { seedDatabase } from '../../src/db/seed';
  */
 export async function resetDb(pool: Pool): Promise<void> {
   await pool.query(
-    `TRUNCATE TABLE idempotency_keys, wallet_activity, ledger_entries, transactions, accounts, wallets
+    `TRUNCATE TABLE fx_rate_snapshots, idempotency_keys, wallet_activity, ledger_entries, transactions, accounts, wallets
      RESTART IDENTITY CASCADE`,
   );
   await seedDatabase(drizzle(pool));
