@@ -25,13 +25,13 @@ export interface TestApp {
 }
 
 /** Boots the real AppModule with a FakeClock and test config (pool max 30, schedulers off). */
-export async function createTestApp(): Promise<TestApp> {
+export async function createTestApp(options: { poolMax?: number } = {}): Promise<TestApp> {
   const databaseUrl = process.env.TEST_DATABASE_URL;
   if (!databaseUrl) throw new Error('TEST_DATABASE_URL is not set; did global setup run?');
   Object.assign(process.env, {
     NODE_ENV: 'test',
     DATABASE_URL: databaseUrl,
-    DB_POOL_MAX: '30',
+    DB_POOL_MAX: String(options.poolMax ?? 30),
     SCHEDULERS_ENABLED: 'false',
   });
 

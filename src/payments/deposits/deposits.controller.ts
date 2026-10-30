@@ -5,7 +5,7 @@ import { UuidParamPipe } from '../../common/http/uuid-param.pipe';
 import { parseIdempotencyKey } from '../../idempotency/idempotency-key';
 import { sendIdempotentResponse } from '../../idempotency/send-idempotent-response';
 import { CreateDepositDto } from './dto/create-deposit.dto';
-import { depositLocation } from './deposit.mapper';
+import { paymentLocation } from '../payment.mapper';
 import { DepositsService } from './deposits.service';
 
 @ApiTags('deposits')
@@ -24,6 +24,6 @@ export class DepositsController {
   ): Promise<void> {
     const key = parseIdempotencyKey(keyHeader);
     const result = await this.deposits.deposit(walletId, dto, key, req.id ?? 'unknown');
-    sendIdempotentResponse(res, result, depositLocation(result.statusCode, result.body));
+    sendIdempotentResponse(res, result, paymentLocation(result.statusCode, result.body));
   }
 }

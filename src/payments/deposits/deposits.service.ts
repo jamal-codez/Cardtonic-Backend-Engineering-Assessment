@@ -14,7 +14,7 @@ import {
 import { hashRequest } from '../../idempotency/request-hash';
 import { LedgerService } from '../../ledger/ledger.service';
 import type { CreateDepositDto } from './dto/create-deposit.dto';
-import { toDepositResource } from './deposit.mapper';
+import { toPaymentResource } from '../payment.mapper';
 
 /** Deposits never touch FX: no rate lookup, same currency in and out. */
 @Injectable()
@@ -83,7 +83,15 @@ export class DepositsService {
     const balancesAfter = await this.ledger.getUserAccounts(walletId, [...CURRENCY_CODES], tx);
     return {
       statusCode: 201,
-      body: toDepositResource(posted, currency, amount, balancesAfter),
+      body: toPaymentResource(
+        posted,
+        {
+          type: 'deposit',
+          source: { currency, amount },
+          dest: { currency, amount },
+        },
+        balancesAfter,
+      ),
       transactionId: posted.transactionId,
     };
   }

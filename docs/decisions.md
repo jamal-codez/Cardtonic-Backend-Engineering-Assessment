@@ -195,3 +195,22 @@ Template for each entry: Context, Options, Decision, Consequences.
 - **Context:** A hung database insert would pin the shared in-flight refresh forever, and a slow older fetch could overwrite a newer snapshot.
 - **Decision:** The whole refresh (provider call and insert) has a 15 second deadline, after which it fails and the next refresh can run. A fetched snapshot is only swapped in if it was stored at or after the current one. At boot, `latest()` skips unreadable rows (looking at the newest 20) so one bad row cannot hide a good older snapshot.
 - **Consequences:** A failed or abandoned refresh keeps serving the last good snapshot. Snapshot age limits and a circuit breaker are phase 8.
+
+## D32. A swap resolves its rate before BEGIN, and carries a quote failure into the idempotency boundary
+
+- **Context:** The rate must be known before any database transaction opens (no network or provider work inside one). But a rejection such as `AMOUNT_TOO_SMALL` should be stored against the key like any other business rejection, and a replay of an earlier success should not depend on FX being available.
+- **Options:** (a) Quote first and throw straight away: a dust rejection is then never stored, and a replay can fail with 503 when FX is down. (b) Quote inside the transaction: breaks the rule. (c) Quote first, capture the result or the error, and let the idempotency work rethrow a captured error as its first line.
+- **Decision:** (c). `SwapsService` calls `ConversionService.quoteForExecution` before `idempotency.execute`; the work function rethrows a captured error before touching the database. A 422 (dust) is stored and replays; a 503 (`FX_UNAVAILABLE`) rolls back and releases the key; a replay returns the stored response without the quote mattering.
+- **Consequences:** Every swap request computes a quote, including replays (a cheap in-memory read). A test helper makes `getRate` throw while a transaction is open, and the swap tests run under it. A retry by `withTransaction` re-runs the work with the same quote, so the rate recorded is the rate that was priced. No business-level retry exists. A stored rejection that depends on the rate (`AMOUNT_TOO_SMALL`) is pinned to its key for the TTL, just as `INSUFFICIENT_FUNDS` is: if the rate later moves in the customer's favour, they use a new key. A replayed success returns the original rate even after the live rate has changed.
+
+## D33. A swap is four legs through the FX pool; rounding dust stays in the pool
+
+- **Context:** Money changes currency, but the ledger only balances within one currency.
+- **Decision:** `user:from -s`, `fx_pool:from +s`, `fx_pool:to -d`, `user:to +d`, with `d = floor(s x rate)` on the recorded 12-decimal rate. The from-currency legs sum to zero, and the to-currency legs sum to zero, so each currency balances on its own. The rate only links them in the transaction row (`rate`, `rate_source`, `rate_as_of`), where a reviewer can reproduce `d` exactly.
+- **Consequences:** The pool receives the full sold amount and pays out the floor, so the sub-unit remainder (always under one minor unit of the bought coin per swap) never leaves the pool; customers are never overpaid. The pool balance is the sum of its entries (D9), so it needs no row lock and concurrent swaps do not queue on it. Overdrafts are decided on the locked user accounts (ascending id order, `FOR UPDATE`), backed by `CHECK (balance >= 0)`.
+
+## D34. Deposits and swaps share one response mapper
+
+- **Context:** Both return `{ transaction, balances_after }`.
+- **Decision:** `payment.mapper.ts` builds the body for both and the `Location` from it; swaps add `rate`, `rate_source` and `rate_as_of`. Deposits keep exactly their previous response (the phase 3 tests passed unchanged).
+- **Consequences:** Transfers can reuse the same mapper in phase 6.
