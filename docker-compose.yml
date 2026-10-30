@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgres:16.10-alpine
+    environment:
+      POSTGRES_USER: borderless
+      POSTGRES_PASSWORD: borderless
+      POSTGRES_DB: borderless
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U borderless -d borderless']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      DATABASE_URL: postgres://borderless:borderless@postgres:5432/borderless
+      DB_POOL_MAX: '10'
+      SCHEDULERS_ENABLED: 'true'
+      REQUEST_TIMEOUT_MS: '10000'
+    ports:
+      - '3000:3000'
+
+volumes:
+  pgdata:
