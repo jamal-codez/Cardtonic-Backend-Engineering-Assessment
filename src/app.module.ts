@@ -6,9 +6,10 @@ import { DatabaseModule } from './common/db/database.module';
 import { RequestTimeoutInterceptor } from './common/http/request-timeout.interceptor';
 import { LoggingModule } from './common/logging/logging.module';
 import { HealthModule } from './health/health.module';
+import { LedgerModule } from './ledger/ledger.module';
 
 @Module({
-  imports: [ConfigModule, LoggingModule, ClockModule, DatabaseModule, HealthModule],
+  imports: [ConfigModule, LoggingModule, ClockModule, DatabaseModule, LedgerModule, HealthModule],
   providers: [{ provide: APP_INTERCEPTOR, useClass: RequestTimeoutInterceptor }],
 })
 export class AppModule {}

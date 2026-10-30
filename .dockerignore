@@ -6,7 +6,6 @@ coverage
 .env
 .env.*
 !.env.example
-.claude
 docs
 test
 *.md

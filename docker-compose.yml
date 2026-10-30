@@ -27,6 +27,7 @@ services:
       DB_POOL_MAX: '10'
       SCHEDULERS_ENABLED: 'true'
       REQUEST_TIMEOUT_MS: '10000'
+      MAX_TX_AMOUNT: '1000000000'
     ports:
       - '3000:3000'
 

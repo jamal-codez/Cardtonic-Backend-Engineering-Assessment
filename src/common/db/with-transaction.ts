@@ -51,7 +51,7 @@ async function attempt<T>(pool: Pool, fn: (tx: Db) => Promise<T>): Promise<T> {
 /**
  * Runs `fn` in one database transaction. The whole function is retried on deadlock,
  * serialization failure and lock timeout, so it must not perform network calls or other
- * non-repeatable side effects (CLAUDE.md invariant 7).
+ * non-repeatable side effects.
  */
 export async function withTransaction<T>(
   pool: Pool,

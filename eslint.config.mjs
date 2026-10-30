@@ -22,11 +22,23 @@ export default tseslint.config(
   {
     files: ['src/**/*.ts'],
     rules: {
-      'no-restricted-globals': ['error', { name: 'parseFloat', message: moneyMessage }],
+      'no-restricted-globals': [
+        'error',
+        { name: 'parseFloat', message: moneyMessage },
+        { name: 'parseInt', message: moneyMessage },
+      ],
       'no-restricted-properties': [
         'error',
         { object: 'Number', property: 'parseFloat', message: moneyMessage },
+        { object: 'Number', property: 'parseInt', message: moneyMessage },
         { property: 'toFixed', message: moneyMessage },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.name='Number'], NewExpression[callee.name='Number']",
+          message: moneyMessage,
+        },
       ],
     },
   },

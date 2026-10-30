@@ -1,4 +1,5 @@
 #!/bin/sh
-# Phase 2 adds migrate and seed before the start.
 set -eu
+node dist/db/migrate.js
+node dist/db/seed.js
 exec node dist/main.js
