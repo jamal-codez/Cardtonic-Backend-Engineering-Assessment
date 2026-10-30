@@ -3,7 +3,7 @@ import type { Pool } from 'pg';
 import type { RateService } from '../fx/rate.service';
 import { HealthController } from './health.controller';
 
-function setup(options: { loaded: boolean; databaseUp?: boolean }) {
+function setup(options: { loaded: boolean; databaseUp?: boolean; lastError?: string }) {
   const pool = {
     query: jest.fn(() =>
       options.databaseUp === false ? Promise.reject(new Error('down')) : Promise.resolve({}),
@@ -13,8 +13,14 @@ function setup(options: { loaded: boolean; databaseUp?: boolean }) {
   const rates = {
     status: () =>
       options.loaded
-        ? { loaded: true, source: 'static', asOf }
-        : { loaded: false, source: null, asOf: null },
+        ? {
+            loaded: true,
+            provider: 'simulated',
+            source: 'live',
+            asOf,
+            lastError: options.lastError ?? null,
+          }
+        : { loaded: false, provider: 'simulated', source: null, asOf: null, lastError: null },
   };
   const headers: Record<string, string> = {};
   const res = {
@@ -39,7 +45,7 @@ describe('HealthController.ready', () => {
       status: 'ok',
       checks: {
         database: 'up',
-        fx: { loaded: true, source: 'static', as_of: '2026-01-01T00:00:00.000Z' },
+        fx: { provider: 'simulated', source: 'live', as_of: '2026-01-01T00:00:00.000Z' },
       },
     });
     expect(res.statusCode).toBe(0);
@@ -49,9 +55,20 @@ describe('HealthController.ready', () => {
     const { controller, res, headers } = setup({ loaded: false });
     const body = await controller.ready(res as unknown as Response);
     expect(body.status).toBe('unavailable');
-    expect(body.checks.fx).toEqual({ loaded: false, source: null, as_of: null });
+    expect(body.checks.fx).toEqual({ provider: 'simulated', source: null, as_of: null });
     expect(res.statusCode).toBe(503);
     expect(headers['Retry-After']).toBe('1');
+  });
+
+  it('stays ready, and reports the reason, when the latest refresh failed', async () => {
+    const { controller, res } = setup({
+      loaded: true,
+      lastError: 'Rejected a rate table: NGN is missing',
+    });
+    const body = await controller.ready(res as unknown as Response);
+    expect(body.status).toBe('ok');
+    expect(body.checks.fx.last_error).toBe('Rejected a rate table: NGN is missing');
+    expect(res.statusCode).toBe(0);
   });
 
   it('answers 503 when the database is down', async () => {

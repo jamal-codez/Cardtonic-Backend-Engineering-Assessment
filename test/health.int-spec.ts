@@ -22,7 +22,7 @@ describe('health', () => {
       status: 'ok',
       checks: {
         database: 'up',
-        fx: { loaded: true, source: 'static', as_of: expect.stringMatching(/Z$/) },
+        fx: { provider: 'static', source: 'static', as_of: expect.stringMatching(/Z$/) },
       },
     });
   });

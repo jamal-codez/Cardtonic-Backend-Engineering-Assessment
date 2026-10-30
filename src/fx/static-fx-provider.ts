@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { Inject, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import { CLOCK, type Clock } from '../common/clock/clock';
-import { usdRatesSchema, type FxProvider, type FxRates } from './fx-provider';
+import { usdRatesSchema, type FxProvider, type FxRates, type UsdRates } from './fx-provider';
 
 export const STATIC_RATES_PATH = join(__dirname, '..', '..', 'config', 'static-rates.json');
 
@@ -37,6 +37,11 @@ export class StaticFxProvider implements FxProvider {
 
   constructor(@Inject(CLOCK) clock: Clock) {
     this.loaded = loadStaticRates(STATIC_RATES_PATH, clock.now());
+  }
+
+  /** The rates from the file, as a validated table (the anchor of the simulated feed). */
+  anchorRates(): UsdRates {
+    return { ...usdRatesSchema.parse(this.loaded.rates) };
   }
 
   fetchUsdRates(): Promise<FxRates> {

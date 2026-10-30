@@ -286,3 +286,34 @@ Template for each entry: Context, Options, Decision, Consequences.
 - **Context:** `GET /v1/admin/reconciliation` and `POST /v1/admin/reconciliation/run` are operator tools.
 - **Decision:** This sandbox has no authentication at all, so they are open, and they are labelled admin and unauthenticated in Swagger and the README. `POST .../run` defaults to `mode=full`; a run that cannot start because another holds the lock returns `{ "skipped": true }` with status 200. `yarn reconcile` exits 0 (ok), 1 (drift), 2 (skipped) or 3 (the run itself failed).
 - **Consequences:** Anyone who can reach the API can trigger a (read-only) run; each call scans the ledger, limited only by the lock (a second concurrent call just returns `skipped`). A real deployment puts these routes behind operator authentication or leaves them off the public network. Known limits, accepted for the sandbox: `GET /v1/transactions/:id` shows both wallet ids and the signed entries of any transaction id (no per-wallet scoping, like everything else here); a run's drift list is not capped, so mass drift produces a large record; a run that fails (for example the 60s statement timeout on a very large ledger) is logged and the CLI exits 3, but no run row is written; the daily cron fires on every replica, and the advisory lock keeps them from overlapping but not from repeating a full run one after the other.
+
+## D46. A simulated rate feed instead of an external provider
+
+- **Context:** A real FX API needs a key, and this is an assessment project. Phase 8 was meant to add a live provider with retries, a circuit breaker and fallback tiers.
+- **Decision:** Rates come from `SimulatedFxProvider`, a random walk the existing background job steps every 54 seconds (`FX_REFRESH_INTERVAL_MS`). The HTTP client, retries, breaker, tiers and nock tests were not built: they exist to survive a remote service failing and a local generator has none. A real provider would be a new adapter behind the `FxProvider` port, with that resilience added in `RateService.refresh()`.
+- **Consequences:** No network, no key. Swaps use rates that really move, and each records the exact rate used. Nothing here shows how a real provider's outages are handled; that is stated plainly in the README.
+
+## D47. The walk: small steps, medium steps, a band, and no state in the provider
+
+- **Context:** The feed must look like a market without drifting to absurd values, and a bad step must not break it.
+- **Decision:** Each tick multiplies every non-USD rate by `1 + d`: 85% of the time `d` is uniform in plus or minus 0.3%, otherwise in plus or minus 1.5%. The result is clamped to plus or minus 30% around the static rates and rounded down to 6 decimals; USD stays exactly 1. The provider keeps no state: `RateService` passes in the newest stored table (or the in-memory one if the read finds nothing), so a step that is rejected or fails to persist is never built on, and replicas step the same series. Randomness is injected (`RANDOM`) so tests are seeded; a non-finite step fails that tick.
+- **Consequences:** Config is checked so small <= medium <= max move and medium <= band; otherwise the feed would be rejected by its own validation. Two replicas ticking at once may each step from the same table, which only wastes a tick. If the band is narrowed in config while stored rates lie outside it, the clamp may move a rate by more than the max-move limit and the tick is rejected until the operator resets the snapshot table.
+
+## D48. The simulated feed is recorded as `live`, and says it is simulated
+
+- **Context:** Invariant 11 fixes `rate_source` to `live`, `cached`, `static` or `quote`.
+- **Decision:** Simulated snapshots and conversions use `live`. To keep that honest, `GET /v1/fx/rates` and readiness report `provider: simulated`.
+- **Consequences:** `rate_source` alone cannot tell a simulated rate from a real one in stored transactions; the provider is only visible in current responses and configuration. Changing the invariant to add `simulated` would be a schema change.
+
+## D49. Validation is a guard, and the move check needs something to compare with
+
+- **Context:** The generator is trusted, but a bug in it or a future real provider should not reach money.
+- **Decision:** Every table is validated before it is stored or used. A zero, missing, text, negative or non-finite value is rejected, as is a move over `FX_MAX_MOVE_PCT` against the previous table. The move check is skipped when there is no previous table, since there is nothing to compare with. The previous table is the one just stored, not an older one, so a slow drift is allowed while a sudden jump is not.
+- **Consequences:** A rejected table is never persisted, the old snapshot stays in force, and the reason shows as `last_error` in readiness (which stays 200: a failing feed does not take the service down).
+
+## D50. Snapshot growth and defaults
+
+- **Context:** Every tick stores one row, about 1,600 a day.
+- **Decision:** No retention job; about 48,000 rows a month is fine for a sandbox. `FX_PROVIDER` defaults to `simulated` (also in compose); `FX_PROVIDER=live` is no longer valid. `static` keeps fixed rates for demos that need them.
+- **Consequences:** The table grows without bound until a retention job is added.
+

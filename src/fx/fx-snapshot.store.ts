@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { desc } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
 import { DRIZZLE } from '../common/db/database.module';
 import { fxRateSnapshots } from '../common/db/schema';
@@ -23,11 +23,12 @@ export class FxSnapshotStore {
 
   constructor(@Inject(DRIZZLE) private readonly db: Db) {}
 
-  /** The most recent snapshot, or null when there is none (or it is unreadable). */
-  async latest(): Promise<FxSnapshot | null> {
+  /** The most recent snapshot (of the given source, if any), or null when there is none. */
+  async latest(source?: FxSource): Promise<FxSnapshot | null> {
     const rows = await this.db
       .select()
       .from(fxRateSnapshots)
+      .where(source ? eq(fxRateSnapshots.source, source) : undefined)
       .orderBy(desc(fxRateSnapshots.fetchedAt), desc(fxRateSnapshots.id))
       .limit(LOOKBACK);
 

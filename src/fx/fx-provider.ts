@@ -12,14 +12,22 @@ export type UsdRates = Record<Fiat, string>;
 export type FxSource = 'live' | 'static';
 
 export interface FxRates {
-  rates: UsdRates;
+  /**
+   * Whatever the provider produced, unchecked: RateService validates it (all five fiats, finite,
+   * positive, within bounds, no wild jump) before it is stored or used.
+   */
+  rates: Record<string, unknown>;
   providerUpdatedAt: Date;
 }
 
 /** A source of USD-based rates. Only `RateService` knows about providers. */
 export interface FxProvider {
   readonly name: FxSource;
-  fetchUsdRates(signal?: AbortSignal): Promise<FxRates>;
+  /**
+   * `previous` is the last accepted table. A feed that moves step by step starts from it, so it
+   * holds no state of its own: a rejected or failed step cannot leave it ahead of what is stored.
+   */
+  fetchUsdRates(signal?: AbortSignal, previous?: UsdRates): Promise<FxRates>;
 }
 
 export const FX_PROVIDER = Symbol('FX_PROVIDER');
@@ -29,11 +37,18 @@ export const FX_PROVIDER = Symbol('FX_PROVIDER');
 const MIN_USD_RATE = new RateDecimal('0.001');
 const MAX_USD_RATE = new RateDecimal('10000000');
 
+const PLAIN_DECIMAL = /^[0-9]+(\.[0-9]+)?$/;
+
+// Every Decimal conversion below is guarded by PLAIN_DECIMAL: `new Decimal('abc')` throws, and a
+// bad value must be reported as a validation issue, never crash the check.
 const positiveDecimal = z
   .string()
   .max(32)
-  .regex(/^[0-9]+(\.[0-9]+)?$/, 'must be a plain decimal string')
-  .refine((value) => new RateDecimal(value).gt(0), 'must be greater than zero');
+  .regex(PLAIN_DECIMAL, 'must be a plain decimal string')
+  .refine(
+    (value) => PLAIN_DECIMAL.test(value) && new RateDecimal(value).gt(0),
+    'must be greater than zero',
+  );
 
 /** Shape check shared by the static file, stored snapshots and (later) live responses. */
 export const usdRatesSchema = z
@@ -44,9 +59,12 @@ export const usdRatesSchema = z
     >,
   )
   .strict()
-  .refine((rates) => new RateDecimal(rates.USD).eq(1), { message: 'USD must be exactly 1' })
+  .refine((rates) => PLAIN_DECIMAL.test(rates.USD) && new RateDecimal(rates.USD).eq(1), {
+    message: 'USD must be exactly 1',
+  })
   .superRefine((rates, ctx) => {
     for (const fiat of FIATS) {
+      if (!PLAIN_DECIMAL.test(rates[fiat])) continue; // already reported above
       const value = new RateDecimal(rates[fiat]);
       if (value.lt(MIN_USD_RATE) || value.gt(MAX_USD_RATE)) {
         ctx.addIssue({

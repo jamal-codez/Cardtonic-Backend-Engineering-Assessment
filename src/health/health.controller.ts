@@ -8,9 +8,11 @@ import { RateService } from '../fx/rate.service';
 type CheckStatus = 'up' | 'down';
 
 interface FxCheck {
-  loaded: boolean;
+  provider: string;
   source: string | null;
   as_of: string | null;
+  /** Present only while the most recent refresh failed or was rejected. */
+  last_error?: string;
 }
 
 export interface ReadinessBody {
@@ -34,9 +36,12 @@ export class HealthController {
   /** Later phases add their own entries to `checks`. */
   @Get('ready')
   async ready(@Res({ passthrough: true }) res: Response): Promise<ReadinessBody> {
+    // A failing or rejected refresh never makes the service unready: it keeps serving the last
+    // good rates. Only "no rates at all" would, and boot guarantees a set before it listens.
+    const loaded = this.rates.status().loaded;
     const fx = this.checkFx();
     const checks = { database: await this.checkDatabase(), fx };
-    const healthy = checks.database === 'up' && fx.loaded;
+    const healthy = checks.database === 'up' && loaded;
     if (!healthy) {
       res.status(503).setHeader('Retry-After', '1');
     }
@@ -46,9 +51,10 @@ export class HealthController {
   private checkFx(): FxCheck {
     const status = this.rates.status();
     return {
-      loaded: status.loaded,
+      provider: status.provider,
       source: status.source,
       as_of: status.asOf?.toISOString() ?? null,
+      ...(status.lastError ? { last_error: status.lastError } : {}),
     };
   }
 

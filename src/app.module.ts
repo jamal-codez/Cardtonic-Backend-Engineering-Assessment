@@ -6,6 +6,7 @@ import { ConfigModule } from './common/config/config.module';
 import { DatabaseModule } from './common/db/database.module';
 import { RequestTimeoutInterceptor } from './common/http/request-timeout.interceptor';
 import { LoggingModule } from './common/logging/logging.module';
+import { RuntimeModule } from './common/runtime/runtime.module';
 import { FxModule } from './fx/fx.module';
 import { HealthModule } from './health/health.module';
 import { IdempotencyModule } from './idempotency/idempotency.module';
@@ -19,6 +20,7 @@ import { WalletsModule } from './wallets/wallets.module';
     ConfigModule,
     LoggingModule,
     ClockModule,
+    RuntimeModule,
     DatabaseModule,
     LedgerModule,
     ScheduleModule.forRoot(),
