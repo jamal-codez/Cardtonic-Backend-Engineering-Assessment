@@ -5,7 +5,10 @@ import { toBalanceResources, type BalanceResource } from '../wallets/wallet.mapp
 export interface PaymentResource {
   transaction: {
     id: string;
-    type: 'deposit' | 'swap';
+    type: 'deposit' | 'swap' | 'transfer';
+    /** Present only for transfers. */
+    sender_wallet_id?: string;
+    receiver_wallet_id?: string;
     source_currency: string;
     source_amount: string;
     dest_currency: string;
@@ -20,7 +23,9 @@ export interface PaymentResource {
 }
 
 export interface PaymentDetails {
-  type: 'deposit' | 'swap';
+  type: 'deposit' | 'swap' | 'transfer';
+  /** Set for transfers: who sent and who received. */
+  parties?: { senderWalletId: string; receiverWalletId: string };
   source: { currency: string; amount: bigint };
   dest: { currency: string; amount: bigint };
   conversion?: { rate: string; rateSource: string; rateAsOf: Date };
@@ -36,6 +41,12 @@ export function toPaymentResource(
     transaction: {
       id: posted.transactionId,
       type: details.type,
+      ...(details.parties
+        ? {
+            sender_wallet_id: details.parties.senderWalletId,
+            receiver_wallet_id: details.parties.receiverWalletId,
+          }
+        : {}),
       source_currency: details.source.currency,
       source_amount: formatAmount(details.source.amount),
       dest_currency: details.dest.currency,

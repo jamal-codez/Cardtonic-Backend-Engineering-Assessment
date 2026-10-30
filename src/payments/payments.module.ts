@@ -7,11 +7,13 @@ import { DepositsController } from './deposits/deposits.controller';
 import { DepositsService } from './deposits/deposits.service';
 import { SwapsController } from './swaps/swaps.controller';
 import { SwapsService } from './swaps/swaps.service';
+import { TransfersController } from './transfers/transfers.controller';
+import { TransfersService } from './transfers/transfers.service';
 
 @Module({
   imports: [LedgerModule, IdempotencyModule, FxModule],
-  controllers: [DepositsController, SwapsController],
-  providers: [DepositsService, SwapsService, ConversionService],
+  controllers: [DepositsController, SwapsController, TransfersController],
+  providers: [DepositsService, SwapsService, TransfersService, ConversionService],
   exports: [ConversionService],
 })
 export class PaymentsModule {}

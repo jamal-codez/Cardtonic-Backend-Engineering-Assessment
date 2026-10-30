@@ -78,7 +78,11 @@ export default tseslint.config(
   {
     // Deposits and same-currency transfers never touch the FX module (declared after the block
     // above so this stricter rule wins for these files).
-    files: ['src/payments/deposits/**/*.ts', 'src/idempotency/**/*.ts'],
+    files: [
+      'src/payments/deposits/**/*.ts',
+      'src/payments/transfers/**/*.ts',
+      'src/idempotency/**/*.ts',
+    ],
     rules: {
       'no-restricted-imports': [
         'error',

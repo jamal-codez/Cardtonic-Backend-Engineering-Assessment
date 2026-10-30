@@ -213,4 +213,32 @@ Template for each entry: Context, Options, Decision, Consequences.
 
 - **Context:** Both return `{ transaction, balances_after }`.
 - **Decision:** `payment.mapper.ts` builds the body for both and the `Location` from it; swaps add `rate`, `rate_source` and `rate_as_of`. Deposits keep exactly their previous response (the phase 3 tests passed unchanged).
-- **Consequences:** Transfers can reuse the same mapper in phase 6.
+- **Consequences:** Transfers reuse the same mapper (phase 6).
+
+## D35. A transfer to your own wallet is refused in every currency
+
+- **Context:** `to_wallet_id` equal to the sender could mean "send to myself, converting" or be a mistake.
+- **Options:** (a) Allow it when the currencies differ, as a disguised swap. (b) Refuse it always with `SELF_TRANSFER`.
+- **Decision:** (b). Converting inside one wallet is what a swap is for. The check runs before currency and amount validation and compares ids case-insensitively.
+- **Consequences:** One way to do each thing, one set of records for it (a swap row, not a transfer row with the same wallet on both sides), and the history read model never has to show a transfer from a wallet to itself.
+
+## D36. A transfer is one ACID transaction; a saga would only come in for external rails
+
+- **Context:** Moving money between two wallets must debit and credit atomically.
+- **Decision:** Both wallets, all their accounts and the ledger are in one PostgreSQL database, so one database transaction is the whole mechanism: the debit, the credit, the entries, the activity rows and the idempotency record commit together or not at all. There is no saga, outbox or retry worker.
+- **Consequences:** No intermediate "debited but not credited" state can exist, and a crash mid-request leaves nothing behind. A saga (with an outbox and idempotent retries) becomes necessary when a step cannot join the database transaction: an external payout rail such as a bank or mobile-money API, a second ledger in another service or database, or any irreversible call out to a third party. The shape would be: reserve funds in the ledger inside a transaction, write an outbox row in the same transaction, let a worker call the rail, then confirm or reverse the reservation.
+
+## D37. Same-currency transfers cannot reach FX
+
+- **Context:** A transfer in one currency has no rate and must work even when FX is down.
+- **Decision:** `TransfersService` depends on `ConversionService` only and never imports `fx/` (an ESLint rule bans it for `src/payments/transfers/**`, like deposits). The same-currency branch never calls the conversion service. A unit test asserts zero `quoteForExecution` calls, and an integration test asserts zero `RateService.getRate` calls and that same-currency transfers still succeed while `getRate` throws. The rate fields on the transaction row stay null.
+- **Consequences:** The FX state cannot influence a same-currency transfer, in either direction. `ConversionService` itself also refuses a same-currency pair.
+
+## D38. Transfer response, checks and locking
+
+- **Context:** Several wallets, several accounts and a recipient the caller does not own.
+- **Decision:** The response is the shared payment body plus `sender_wallet_id` and `receiver_wallet_id`; `balances_after` is the sender's, because the caller has no business reading the recipient's balances. The work checks the sender (404 `WALLET_NOT_FOUND`) and then the recipient (404 `RECIPIENT_NOT_FOUND`) before it surfaces a captured quote failure, so a missing party never stores a key. The service passes its legs to the ledger in any order and never sorts by sender: `LedgerService.post` sorts the distinct user account ids ascending and locks them in a single `ORDER BY id FOR UPDATE`, so opposite-direction transfers, and same-wallet cross-currency pairs of accounts, take locks in the same order. A frozen sender is rejected by the ledger (`WALLET_FROZEN`, stored against the key); a frozen recipient still receives (D11). The idempotency scope is the sender's wallet and the hash covers the recipient and the normalised currencies, so omitting `destination_currency` equals passing the same value.
+- **Consequences:** Distinguishing `WALLET_NOT_FOUND` from `RECIPIENT_NOT_FOUND` tells a caller whether a recipient id exists; the ids are unguessable UUIDv7 values and there is no authentication in this sandbox, so this is accepted. Responses and errors never include the recipient's status, balances, email or phone, and a frozen recipient looks the same as an active one.
+- **Check order, as chosen:** (1) `SELF_TRANSFER` before currency and amount validation, so a self-transfer with a malformed amount reports `SELF_TRANSFER`; all of these are 400s. (2) Inside the work: sender missing, recipient missing, then a captured quote failure, then the ledger. So a cross-currency transfer from a frozen sender during an FX outage reports 503 (nothing is stored), and the same transfer as dust reports a stored `AMOUNT_TOO_SMALL`, exactly as swaps do (D32).
+- **What the deadlock tests prove:** the opposite-direction tests (same and cross currency) would pass for any leg order, because `LedgerService.post` sorts the user account ids itself. They are regression tests for that sort and for the whole request path, not proof that the service orders its legs well; the service simply never orders them. Each asserts that `ledger.post` ran exactly once per request, which would be more if `withTransaction` had retried a deadlock.
+- **Not capped:** only the source amount is capped by `MAX_TX_AMOUNT`. A destination amount or a receiver balance that would overflow a bigint column raises `22003`, which becomes a stored 422 `AMOUNT_LIMIT_EXCEEDED`.

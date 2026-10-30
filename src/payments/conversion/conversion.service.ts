@@ -18,7 +18,7 @@ export interface ConversionQuote {
 
 /**
  * Prices a conversion from the current rate snapshot. It is synchronous and in-memory, and callers
- * use it before they open a database transaction (CLAUDE.md invariant 7). Shared by swaps and,
+ * use it before they open a database transaction (no provider work inside a transaction). Shared by swaps and,
  * later, cross-currency transfers.
  */
 @Injectable()
