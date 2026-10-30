@@ -11,6 +11,7 @@ import { HealthModule } from './health/health.module';
 import { IdempotencyModule } from './idempotency/idempotency.module';
 import { LedgerModule } from './ledger/ledger.module';
 import { PaymentsModule } from './payments/payments.module';
+import { TransactionsModule } from './transactions/transactions.module';
 import { WalletsModule } from './wallets/wallets.module';
 
 @Module({
@@ -25,6 +26,7 @@ import { WalletsModule } from './wallets/wallets.module';
     IdempotencyModule,
     WalletsModule,
     PaymentsModule,
+    TransactionsModule,
     HealthModule,
   ],
   providers: [{ provide: APP_INTERCEPTOR, useClass: RequestTimeoutInterceptor }],

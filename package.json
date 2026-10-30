@@ -63,6 +63,7 @@
     "test:int": "jest --selectProjects int --runInBand",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env --require ts-node/register/transpile-only src/db/migrate.ts",
-    "db:seed": "node --env-file-if-exists=.env --require ts-node/register/transpile-only src/db/seed.ts"
+    "db:seed": "node --env-file-if-exists=.env --require ts-node/register/transpile-only src/db/seed.ts",
+    "reconcile": "node --env-file-if-exists=.env --require ts-node/register/transpile-only src/ledger/reconcile-cli.ts"
   }
 }

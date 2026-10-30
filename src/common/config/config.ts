@@ -13,6 +13,10 @@ export const configSchema = z.object({
   MAX_TX_AMOUNT: z.coerce.bigint().positive().default(1_000_000_000n),
   IDEMPOTENCY_TTL_HOURS: z.coerce.number().int().min(1).default(24),
   FX_PROVIDER: z.enum(['static', 'live']).default('static'),
+  RECON_INTERVAL_MS: z.coerce.number().int().min(5000).max(86_400_000).default(300_000),
+  // At least a minute: the overlap is what protects against transactions that commit late.
+  RECON_OVERLAP_MS: z.coerce.number().int().min(60_000).max(86_400_000).default(300_000),
+  RECON_FREEZE_ON_DRIFT: booleanString.default(false),
   // Above 2^31-1 ms Node clamps setInterval to 1 ms, which would hammer the provider.
   FX_REFRESH_INTERVAL_MS: z.coerce.number().int().min(5000).max(86_400_000).default(60_000),
 });

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { bigint, check, numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { bigint, check, index, numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { currencies } from './currencies';
 
 export const transactions = pgTable(
@@ -26,6 +26,8 @@ export const transactions = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    // Supports the incremental reconciliation window.
+    index('transactions_created_at_idx').on(t.createdAt),
     check('transactions_type_check', sql`${t.type} IN ('deposit', 'swap', 'transfer')`),
     check('transactions_source_amount_positive', sql`${t.sourceAmount} > 0`),
     check('transactions_dest_amount_positive', sql`${t.destAmount} > 0`),
