@@ -1,6 +1,6 @@
 # Crossrail
 
-Crossrail is the Operation Borderless prototype: a REST API for a multi-currency stablecoin wallet sandbox with wallets, simulated deposits, swaps, transfers, FX rates, history and reconciliation, built on a double-entry ledger in PostgreSQL.
+Crossrail is the Operation Borderless prototype: a REST API for a multi-currency stablecoin wallet sandbox with wallets, simulated deposits, swaps, transfers, FX rates, history and reconciliation, built on a double-entry ledger in PostgreSQL .
 
 Contents: [Quick start](#quick-start) · [Stack and why PostgreSQL](#stack-and-why-postgresql) · [Architecture](#architecture) · [Endpoints](#endpoint-walkthrough) · [Data model](#data-model) · [Deep dives](#deep-dives) · [Non-functional requirements](#non-functional-requirements) · [Trade-offs](#trade-offs) · [Failure modes](#failure-modes) · [At scale](#at-scale-or-with-real-rails) · [Assumptions and limits](#assumptions-limitations-and-what-id-do-with-more-time) · [API docs](#api-docs)
 
