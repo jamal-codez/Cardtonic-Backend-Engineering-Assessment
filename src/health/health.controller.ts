@@ -33,7 +33,6 @@ export class HealthController {
     return { status: 'ok' };
   }
 
-  /** Later phases add their own entries to `checks`. */
   @Get('ready')
   async ready(@Res({ passthrough: true }) res: Response): Promise<ReadinessBody> {
     // A failing or rejected refresh never makes the service unready: it keeps serving the last

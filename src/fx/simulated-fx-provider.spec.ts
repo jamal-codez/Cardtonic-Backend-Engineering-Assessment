@@ -24,7 +24,7 @@ async function walk(provider: SimulatedFxProvider, steps: number): Promise<UsdRa
   const tables: UsdRates[] = [];
   let previous: UsdRates | undefined;
   for (let i = 0; i < steps; i += 1) {
-    previous = (await provider.fetchUsdRates(undefined, previous)).rates as UsdRates;
+    previous = (await provider.fetchUsdRates(previous)).rates as UsdRates;
     tables.push(previous);
   }
   return tables;
@@ -37,9 +37,9 @@ const change = (before: UsdRates, after: UsdRates, fiat: Fiat): number =>
   relative(after[fiat], before[fiat]);
 
 describe('SimulatedFxProvider', () => {
-  it('plays the live role and stamps each step with the injected clock', async () => {
+  it('is the simulated source and stamps each step with the injected clock', async () => {
     const { provider, clock } = build(1);
-    expect(provider.name).toBe('live');
+    expect(provider.name).toBe('simulated');
     clock.advance(54_000);
     const step = await provider.fetchUsdRates();
     expect(step.providerUpdatedAt).toEqual(new Date(START.getTime() + 54_000));
@@ -134,7 +134,7 @@ describe('SimulatedFxProvider', () => {
     const { provider } = build(13);
     const given: UsdRates = { USD: '1', NGN: '1200', GHS: '13', XAF: '550', EUR: '0.85' };
 
-    const next = (await provider.fetchUsdRates(undefined, given)).rates as UsdRates;
+    const next = (await provider.fetchUsdRates(given)).rates as UsdRates;
 
     for (const fiat of NON_USD) {
       expect(change(given, next, fiat)).toBeLessThanOrEqual(
@@ -146,7 +146,7 @@ describe('SimulatedFxProvider', () => {
   it('holds no state: repeated calls from the same table never compound', async () => {
     const { provider, anchor } = build(14);
     for (let i = 0; i < 200; i += 1) {
-      const next = (await provider.fetchUsdRates(undefined, anchor)).rates as UsdRates;
+      const next = (await provider.fetchUsdRates(anchor)).rates as UsdRates;
       for (const fiat of NON_USD) {
         expect(change(anchor, next, fiat)).toBeLessThanOrEqual(
           CONFIG.FX_SIM_MEDIUM_STEP_PCT / 100 + 2e-6,
@@ -159,7 +159,7 @@ describe('SimulatedFxProvider', () => {
     const { provider, anchor } = build(15);
     const wild: UsdRates = { ...anchor, NGN: '99999', EUR: '0.0011' };
 
-    const next = (await provider.fetchUsdRates(undefined, wild)).rates as UsdRates;
+    const next = (await provider.fetchUsdRates(wild)).rates as UsdRates;
 
     const band = CONFIG.FX_SIM_BAND_PCT / 100;
     expect(relative(next.NGN, anchor.NGN)).toBeLessThanOrEqual(band + 1e-6);

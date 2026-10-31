@@ -13,7 +13,7 @@ export const fxRateSnapshots = pgTable(
     fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    check('fx_rate_snapshots_source_check', sql`${t.source} IN ('live', 'static')`),
+    check('fx_rate_snapshots_source_check', sql`${t.source} IN ('live', 'static', 'simulated')`),
     index('fx_rate_snapshots_fetched_at_idx').on(sql`${t.fetchedAt} DESC`),
   ],
 );

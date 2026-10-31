@@ -1,6 +1,6 @@
 import { integer, jsonb, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
-/** Created in phase 2, used from phase 3. */
+/** One row per (scope, key): the claim, then the stored response replayed on retries. */
 export const idempotencyKeys = pgTable(
   'idempotency_keys',
   {

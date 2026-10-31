@@ -37,8 +37,8 @@ export interface TestAppOptions {
 }
 
 export async function createTestApp(options: TestAppOptions = {}): Promise<TestApp> {
-  const databaseUrl = process.env.TEST_DATABASE_URL;
-  if (!databaseUrl) throw new Error('TEST_DATABASE_URL is not set; did global setup run?');
+  const databaseUrl = process.env.TEST_DB_URL;
+  if (!databaseUrl) throw new Error('TEST_DB_URL is not set; did global setup run?');
   // Settings from an earlier spec file must not leak into this app.
   for (const key of Object.keys(process.env)) if (key.startsWith('FX_')) delete process.env[key];
   Object.assign(process.env, {

@@ -11,7 +11,7 @@ const MEDIUM_STEP_PROBABILITY = 0.15;
 const RATE_DECIMALS = 6;
 
 /**
- * A stand-in for a live market: a bounded random walk around the static rates.
+ * A stand-in for a real market: a bounded random walk around the static rates.
  *
  * Each call to `fetchUsdRates` moves every non-USD rate by a random step, small most of the time
  * and occasionally medium, then keeps it inside a band around the anchor (the rates in
@@ -19,12 +19,11 @@ const RATE_DECIMALS = 6;
  * exactly 1. The arithmetic on rates uses the local Decimal clone; only the noise itself is a
  * float, and it is injected (`RANDOM`) so tests can seed it.
  *
- * It plays the role of the live feed, so its snapshots and conversions are recorded with source
- * `live` (the allowed values are fixed); it is not real market data.
+ * Its snapshots and conversions are recorded with source `simulated`; it is not real market data.
  */
 @Injectable()
 export class SimulatedFxProvider implements FxProvider {
-  readonly name = 'live' as const;
+  readonly name = 'simulated' as const;
   private readonly anchor: UsdRates;
 
   constructor(
@@ -41,7 +40,7 @@ export class SimulatedFxProvider implements FxProvider {
    * state, so a step that is rejected or fails to persist is simply never taken. A `previous` that
    * lies outside the band is pulled back inside it by the clamp.
    */
-  fetchUsdRates(_signal?: AbortSignal, previous?: UsdRates): Promise<FxRates> {
+  fetchUsdRates(previous?: UsdRates): Promise<FxRates> {
     try {
       const from = previous ?? this.anchor;
       const next: Record<string, string> = {};

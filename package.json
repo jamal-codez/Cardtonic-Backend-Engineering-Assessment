@@ -28,11 +28,13 @@
     "@eslint/js": "^10.0.1",
     "@nestjs/testing": "^11",
     "@testcontainers/postgresql": "^12.2.1",
+    "@types/autocannon": "^7.12.7",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^24",
     "@types/pg": "^8.23.1",
     "@types/supertest": "^7.2.1",
+    "autocannon": "^8.0.0",
     "drizzle-kit": "^0.31.11",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
@@ -40,7 +42,6 @@
     "fast-check": "^4.10.2",
     "globals": "^17.13.0",
     "jest": "^30.5.2",
-    "nock": "^15.0.5",
     "prettier": "^3.9.10",
     "supertest": "^7.3.1",
     "ts-jest": "^29.4.15",
@@ -64,6 +65,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env --require ts-node/register/transpile-only src/db/migrate.ts",
     "db:seed": "node --env-file-if-exists=.env --require ts-node/register/transpile-only src/db/seed.ts",
+    "openapi:export": "node --require ts-node/register/transpile-only scripts/export-openapi.ts",
+    "demo": "node --require ts-node/register/transpile-only scripts/demo.ts",
+    "load": "node --require ts-node/register/transpile-only scripts/load.ts",
     "reconcile": "node --env-file-if-exists=.env --require ts-node/register/transpile-only src/ledger/reconcile-cli.ts"
   }
 }

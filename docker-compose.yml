@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: borderless
       POSTGRES_DB: borderless
     ports:
-      - '5432:5432'
+      - '${POSTGRES_PORT:-5432}:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -40,7 +40,7 @@ services:
       FX_MAX_MOVE_PCT: '20'
       FX_QUOTE_TTL_MS: '30000'
     ports:
-      - '3000:3000'
+      - '${API_PORT:-3000}:3000'
 
 volumes:
   pgdata:

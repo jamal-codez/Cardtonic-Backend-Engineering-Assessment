@@ -1,0 +1,97 @@
+# Operation Borderless walkthrough for the VS Code REST Client or the JetBrains HTTP client.
+# Run the requests from top to bottom: later ones read ids from earlier responses.
+# The same steps run unattended with `yarn demo`.
+
+@baseUrl = http://localhost:3000
+
+### 1a. Create wallet A
+# @name createA
+POST {{baseUrl}}/v1/wallets
+Content-Type: application/json
+
+{ "email": "ada@example.com" }
+
+### 1b. Create wallet B
+# @name createB
+POST {{baseUrl}}/v1/wallets
+Content-Type: application/json
+
+{ "email": "bayo@example.com" }
+
+### 2. Deposit 1,000,000 cNGN into A (simulated)
+POST {{baseUrl}}/v1/wallets/{{createA.response.body.id}}/deposits
+Content-Type: application/json
+Idempotency-Key: demo-deposit-1
+
+{ "currency": "cNGN", "amount": "1000000" }
+
+### 3. Swap 100,000 cNGN to USDx
+POST {{baseUrl}}/v1/wallets/{{createA.response.body.id}}/swaps
+Content-Type: application/json
+Idempotency-Key: demo-swap-1
+
+{ "from_currency": "cNGN", "to_currency": "USDx", "amount": "100000" }
+
+### 4. Cross-currency transfer: 50,000 cNGN from A to B, received as cGHS
+POST {{baseUrl}}/v1/wallets/{{createA.response.body.id}}/transfers
+Content-Type: application/json
+Idempotency-Key: demo-transfer-1
+
+{
+  "to_wallet_id": "{{createB.response.body.id}}",
+  "source_currency": "cNGN",
+  "destination_currency": "cGHS",
+  "amount": "50000"
+}
+
+### 5. Replay step 4 with the same key: same body, Idempotent-Replayed: true
+POST {{baseUrl}}/v1/wallets/{{createA.response.body.id}}/transfers
+Content-Type: application/json
+Idempotency-Key: demo-transfer-1
+
+{
+  "to_wallet_id": "{{createB.response.body.id}}",
+  "source_currency": "cNGN",
+  "destination_currency": "cGHS",
+  "amount": "50000"
+}
+
+### 6. Overdraft: 422 INSUFFICIENT_FUNDS
+POST {{baseUrl}}/v1/wallets/{{createA.response.body.id}}/swaps
+Content-Type: application/json
+Idempotency-Key: demo-overdraft-1
+
+{ "from_currency": "cNGN", "to_currency": "USDx", "amount": "10000000" }
+
+### 7a. A's history, newest first
+GET {{baseUrl}}/v1/wallets/{{createA.response.body.id}}/transactions
+
+### 7b. Current rates (simulated feed)
+GET {{baseUrl}}/v1/fx/rates
+
+### 7c. Reconciliation (admin, unauthenticated)
+POST {{baseUrl}}/v1/admin/reconciliation/run?mode=full
+
+### Bonus: lock a rate for 30 seconds, then swap with it exactly once
+# @name quote
+POST {{baseUrl}}/v1/fx/quotes
+Content-Type: application/json
+
+{
+  "wallet_id": "{{createA.response.body.id}}",
+  "from_currency": "cNGN",
+  "to_currency": "USDx",
+  "amount": "1500"
+}
+
+###
+POST {{baseUrl}}/v1/wallets/{{createA.response.body.id}}/swaps
+Content-Type: application/json
+Idempotency-Key: demo-quoted-swap-1
+
+{
+  "from_currency": "cNGN",
+  "to_currency": "USDx",
+  "amount": "1500",
+  "quote_id": "{{quote.response.body.quote_id}}"
+}

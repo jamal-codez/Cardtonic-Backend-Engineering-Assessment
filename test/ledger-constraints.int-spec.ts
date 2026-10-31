@@ -18,7 +18,7 @@ describe('ledger database invariants', () => {
   let external: string;
 
   beforeAll(() => {
-    pool = new Pool({ connectionString: process.env.TEST_DATABASE_URL, max: 5 });
+    pool = new Pool({ connectionString: process.env.TEST_DB_URL, max: 5 });
   });
 
   afterAll(async () => {

@@ -13,7 +13,7 @@ function runCli() {
     ['--require', 'ts-node/register/transpile-only', 'src/ledger/reconcile-cli.ts'],
     {
       cwd: ROOT,
-      env: { ...process.env, DATABASE_URL: process.env.TEST_DATABASE_URL, NODE_ENV: 'test' },
+      env: { ...process.env, DATABASE_URL: process.env.TEST_DB_URL, NODE_ENV: 'test' },
       encoding: 'utf8',
       timeout: 90_000,
     },
@@ -25,7 +25,7 @@ describe('yarn reconcile (CLI)', () => {
   let pool: Pool;
 
   beforeAll(() => {
-    pool = new Pool({ connectionString: process.env.TEST_DATABASE_URL, max: 3 });
+    pool = new Pool({ connectionString: process.env.TEST_DB_URL, max: 3 });
   });
 
   afterAll(async () => {

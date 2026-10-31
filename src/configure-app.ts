@@ -1,8 +1,9 @@
 import { ValidationError, ValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
+import { createOpenApiDocument } from './docs/build-openapi';
 import { bigintReplacer } from './common/json/bigint-replacer';
 import { AppError } from './common/errors/app-error';
 import type { FieldError } from './common/errors/error-catalogue';
@@ -47,11 +48,5 @@ export function configureApp(app: NestExpressApplication): void {
 }
 
 export function setupSwagger(app: NestExpressApplication): void {
-  const config = new DocumentBuilder()
-    .setTitle('Operation Borderless API')
-    .setDescription('Multi-currency stablecoin wallet sandbox')
-    .setVersion('0.1.0')
-    .addApiKey({ type: 'apiKey', name: 'Idempotency-Key', in: 'header' }, 'Idempotency-Key')
-    .build();
-  SwaggerModule.setup('docs', app, SwaggerModule.createDocument(app, config));
+  SwaggerModule.setup('docs', app, createOpenApiDocument(app));
 }

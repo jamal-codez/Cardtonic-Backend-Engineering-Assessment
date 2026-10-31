@@ -9,7 +9,8 @@ export const FIATS = CURRENCY_CODES.map<Fiat>((code) => CURRENCIES[code].fiat);
 /** Units of each fiat per 1 USD. USD is always "1". */
 export type UsdRates = Record<Fiat, string>;
 
-export type FxSource = 'live' | 'static';
+/** Where a rate table came from. `simulated` is the random-walk feed; `static` is the fixed file. */
+export type FxSource = 'simulated' | 'static';
 
 export interface FxRates {
   /**
@@ -27,7 +28,7 @@ export interface FxProvider {
    * `previous` is the last accepted table. A feed that moves step by step starts from it, so it
    * holds no state of its own: a rejected or failed step cannot leave it ahead of what is stored.
    */
-  fetchUsdRates(signal?: AbortSignal, previous?: UsdRates): Promise<FxRates>;
+  fetchUsdRates(previous?: UsdRates): Promise<FxRates>;
 }
 
 export const FX_PROVIDER = Symbol('FX_PROVIDER');
@@ -50,7 +51,7 @@ const positiveDecimal = z
     'must be greater than zero',
   );
 
-/** Shape check shared by the static file, stored snapshots and (later) live responses. */
+/** Shape check shared by the static file, stored snapshots and whatever a provider produces. */
 export const usdRatesSchema = z
   .object(
     Object.fromEntries(FIATS.map((fiat) => [fiat, positiveDecimal])) as Record<

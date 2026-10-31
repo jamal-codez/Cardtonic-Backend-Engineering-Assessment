@@ -50,6 +50,13 @@
       "when": 1793404365348,
       "tag": "0006_fx_quotes",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793412361585,
+      "tag": "0007_simulated_rate_source",
+      "breakpoints": true
     }
   ]
 }

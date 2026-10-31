@@ -52,21 +52,21 @@ describe('simulated rate feed', () => {
   }
 
   describe('what clients see', () => {
-    it('starts from the anchor rates, labelled as the live feed from a simulated provider', async () => {
+    it('starts from the anchor rates, labelled with the simulated source', async () => {
       const body = await ratesBody();
 
-      expect(body).toMatchObject({ base: 'USD', provider: 'simulated', source: 'live' });
+      expect(body).toMatchObject({ base: 'USD', provider: 'simulated', source: 'simulated' });
       expect(body.rates).toHaveLength(20);
       expect(pairRate(body.rates, 'cNGN', 'cGHS')).toBe('0.010000000000'); // 15 / 1500 at the anchor
       const rows = await snapshotRows();
       expect(rows).toHaveLength(1);
-      expect(rows[0]?.source).toBe('live');
+      expect(rows[0]?.source).toBe('simulated');
 
       const ready = await t.agent.get('/health/ready').expect(200);
-      expect(ready.body.checks.fx).toMatchObject({ provider: 'simulated', source: 'live' });
+      expect(ready.body.checks.fx).toMatchObject({ provider: 'simulated', source: 'simulated' });
     });
 
-    it('moves the rates on every refresh and persists each accepted step as a live snapshot', async () => {
+    it('moves the rates on every refresh and persists each accepted step as a simulated snapshot', async () => {
       const before = await ratesBody();
 
       for (let i = 0; i < 5; i += 1) await t.rates.refresh();
@@ -79,7 +79,7 @@ describe('simulated rate feed', () => {
       expect(after.refreshed_at >= before.refreshed_at).toBe(true);
       const rows = await snapshotRows();
       expect(rows).toHaveLength(6);
-      expect(rows.every((row) => row.source === 'live')).toBe(true);
+      expect(rows.every((row) => row.source === 'simulated')).toBe(true);
       for (const row of rows) expect(row.rates['USD']).toBe('1');
     });
 
@@ -108,7 +108,7 @@ describe('simulated rate feed', () => {
   });
 
   describe('conversions while the rates move', () => {
-    it('a swap uses the rate that was current, records it as live and it reproduces the amount', async () => {
+    it('a swap uses the rate that was current, records it as simulated and it reproduces the amount', async () => {
       const wallet = await createWallet('swap-sim@example.com');
       await t.agent
         .post(`/v1/wallets/${wallet}/deposits`)
@@ -148,7 +148,7 @@ describe('simulated rate feed', () => {
 
       for (const outcome of outcomes) {
         expect(outcome.recorded).toBe(outcome.shown);
-        expect(outcome.source).toBe('live');
+        expect(outcome.source).toBe('simulated');
         expect(outcome.ok).toBe(true);
       }
       // The three swaps really did price at different moments of a moving rate.

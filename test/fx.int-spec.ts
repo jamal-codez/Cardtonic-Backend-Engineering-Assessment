@@ -8,7 +8,7 @@ describe('fx boot and snapshots', () => {
   let t: TestApp | undefined;
 
   beforeAll(() => {
-    pool = new Pool({ connectionString: process.env.TEST_DATABASE_URL, max: 3 });
+    pool = new Pool({ connectionString: process.env.TEST_DB_URL, max: 3 });
   });
 
   afterEach(async () => {

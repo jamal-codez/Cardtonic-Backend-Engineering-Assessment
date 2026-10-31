@@ -17,7 +17,7 @@ export interface CreatedQuote {
   rate: string;
   sourceMinor: bigint;
   destMinor: bigint;
-  source: 'live' | 'static';
+  source: 'simulated' | 'static';
   expiresAt: Date;
 }
 

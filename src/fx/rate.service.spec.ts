@@ -12,7 +12,7 @@ const FETCHED_AT = new Date('2026-01-01T00:00:01.000Z');
 
 function setup(options: { latest?: FxSnapshot | null; mode?: 'static' | 'simulated' } = {}) {
   const mode = options.mode ?? 'static';
-  const sourceName: FxSource = mode === 'simulated' ? 'live' : 'static';
+  const sourceName: FxSource = mode === 'simulated' ? 'simulated' : 'static';
   const latest = jest.fn<Promise<FxSnapshot | null>, [FxSource | undefined]>(() =>
     Promise.resolve(options.latest ?? null),
   );
@@ -65,14 +65,18 @@ describe('RateService', () => {
 
     await service.initialize();
 
-    expect(insert).toHaveBeenCalledWith({ usdRates: STATIC_RATES, source: 'live', asOf: AS_OF });
-    expect(service.status()).toMatchObject({ provider: 'simulated', source: 'live' });
+    expect(insert).toHaveBeenCalledWith({
+      usdRates: STATIC_RATES,
+      source: 'simulated',
+      asOf: AS_OF,
+    });
+    expect(service.status()).toMatchObject({ provider: 'simulated', source: 'simulated' });
   });
 
   it('uses an existing snapshot of its own source, writes nothing', async () => {
     const stored: FxSnapshot = {
       usdRates: { ...STATIC_RATES, NGN: '1700' },
-      source: 'live',
+      source: 'simulated',
       asOf: AS_OF,
       fetchedAt: FETCHED_AT,
     };
@@ -83,12 +87,12 @@ describe('RateService', () => {
 
     await service.initialize();
 
-    expect(latest).toHaveBeenCalledWith('live');
+    expect(latest).toHaveBeenCalledWith('simulated');
     expect(insert).not.toHaveBeenCalled();
     expect(staticFetch).not.toHaveBeenCalled();
     expect(service.getRate('cNGN', 'USDx')).toEqual({
       rate: '0.000588235294',
-      source: 'live',
+      source: 'simulated',
       asOf: AS_OF,
     });
   });
@@ -108,7 +112,7 @@ describe('RateService', () => {
   it('steps the feed from the newest stored table of its source, not from memory', async () => {
     const stored: FxSnapshot = {
       usdRates: { ...STATIC_RATES, NGN: '1550' },
-      source: 'live',
+      source: 'simulated',
       asOf: AS_OF,
       fetchedAt: FETCHED_AT,
     };
@@ -118,19 +122,19 @@ describe('RateService', () => {
 
     await service.refresh();
 
-    expect(primaryFetch).toHaveBeenCalledWith(expect.anything(), { ...STATIC_RATES, NGN: '1580' });
+    expect(primaryFetch).toHaveBeenCalledWith({ ...STATIC_RATES, NGN: '1580' });
   });
 
-  it('records a refresh from the simulated feed with source live', async () => {
+  it('records a refresh from the simulated feed with source simulated', async () => {
     const { service, insert } = setup({ mode: 'simulated' });
     await service.initialize();
 
     await service.refresh();
 
-    expect(insert).toHaveBeenLastCalledWith(expect.objectContaining({ source: 'live' }));
+    expect(insert).toHaveBeenLastCalledWith(expect.objectContaining({ source: 'simulated' }));
     expect(service.getRate('USDx', 'cNGN')).toMatchObject({
       rate: '1600.000000000000',
-      source: 'live',
+      source: 'simulated',
     });
   });
 

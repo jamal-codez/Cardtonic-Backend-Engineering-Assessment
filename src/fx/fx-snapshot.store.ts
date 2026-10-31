@@ -35,7 +35,7 @@ export class FxSnapshotStore {
     // Skip unreadable rows instead of giving up, so one bad row cannot discard a good older one.
     for (const row of rows) {
       const rates = usdRatesSchema.safeParse(row.rates);
-      if (!rates.success || (row.source !== 'live' && row.source !== 'static')) {
+      if (!rates.success || (row.source !== 'simulated' && row.source !== 'static')) {
         this.logger.warn({ snapshot_id: row.id }, 'Ignoring unreadable stored FX snapshot');
         continue;
       }

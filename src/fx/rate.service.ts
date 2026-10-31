@@ -10,8 +10,7 @@ import { crossRate, rateMatrix, usdValueMinor, type RatePair } from './rates';
 import { validateSnapshot } from './snapshot-validation';
 import { StaticFxProvider } from './static-fx-provider';
 
-const REFRESH_TIMEOUT_MS = 5_000;
-/** Upper bound for a whole refresh, including persisting the snapshot. */
+/** Upper bound for a whole refresh, so one hung database call cannot pin the coalesced refresh. */
 const REFRESH_DEADLINE_MS = 15_000;
 
 export interface RateQuote {
@@ -31,7 +30,7 @@ export interface UsdValue {
 
 export interface RateMatrix {
   pairs: RatePair[];
-  /** Which provider feeds the rates (`simulated` plays the role of the live feed). */
+  /** Which provider feeds the rates. */
   provider: AppConfig['FX_PROVIDER'];
   source: FxSource;
   asOf: Date;
@@ -103,9 +102,7 @@ export class RateService implements OnModuleInit {
 
   /** Asks the provider for new rates, validates them, persists them and swaps the snapshot. */
   refresh(): Promise<void> {
-    this.inFlight ??= this.withDeadline(
-      this.fetchAndStore(this.provider, AbortSignal.timeout(REFRESH_TIMEOUT_MS)),
-    ).finally(() => {
+    this.inFlight ??= this.withDeadline(this.fetchAndStore(this.provider)).finally(() => {
       this.inFlight = null;
     });
     return this.inFlight;
@@ -171,13 +168,13 @@ export class RateService implements OnModuleInit {
     return this.snapshot;
   }
 
-  private async fetchAndStore(provider: FxProvider, signal?: AbortSignal): Promise<void> {
+  private async fetchAndStore(provider: FxProvider): Promise<void> {
     // Step from the newest stored table of this source, not from memory: replicas then share one
     // series instead of each walking its own, and a step that was never stored is never built on.
     const base = (await this.store.latest(provider.name))?.usdRates ?? this.snapshot?.usdRates;
     let fetched;
     try {
-      fetched = await provider.fetchUsdRates(signal, base);
+      fetched = await provider.fetchUsdRates(base);
     } catch (error) {
       this.lastError = `The ${provider.name} FX provider failed: ${describe(error)}`;
       throw error;
@@ -206,7 +203,7 @@ export class RateService implements OnModuleInit {
     this.lastError = null;
   }
 
-  /** Bounds the whole refresh (provider call and database insert) so one hang cannot pin it. */
+  /** Bounds the whole refresh (provider call and database insert). */
   private async withDeadline(work: Promise<void>): Promise<void> {
     let timer: NodeJS.Timeout | undefined;
     const deadline = new Promise<never>((_resolve, reject) => {

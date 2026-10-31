@@ -22,7 +22,7 @@ export const ERROR_CATALOGUE = {
   FX_UNAVAILABLE: { status: 503, title: 'FX rates unavailable' },
   RETRY_LATER: { status: 503, title: 'Temporarily unavailable, retry later' },
   INTERNAL_ERROR: { status: 500, title: 'Internal error' },
-  // Transport-level codes outside the domain catalogue (see docs/decisions.md).
+  // Transport-level codes (unknown route, method, oversized body) outside the domain catalogue.
   NOT_FOUND: { status: 404, title: 'Route not found' },
   METHOD_NOT_ALLOWED: { status: 405, title: 'Method not allowed' },
   PAYLOAD_TOO_LARGE: { status: 413, title: 'Request body too large' },

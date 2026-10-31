@@ -16,7 +16,7 @@ function setup(options: { loaded: boolean; databaseUp?: boolean; lastError?: str
         ? {
             loaded: true,
             provider: 'simulated',
-            source: 'live',
+            source: 'simulated',
             asOf,
             lastError: options.lastError ?? null,
           }
@@ -45,7 +45,7 @@ describe('HealthController.ready', () => {
       status: 'ok',
       checks: {
         database: 'up',
-        fx: { provider: 'simulated', source: 'live', as_of: '2026-01-01T00:00:00.000Z' },
+        fx: { provider: 'simulated', source: 'simulated', as_of: '2026-01-01T00:00:00.000Z' },
       },
     });
     expect(res.statusCode).toBe(0);

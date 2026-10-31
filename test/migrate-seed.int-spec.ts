@@ -5,8 +5,8 @@ import { seedDatabase } from '../src/db/seed';
 import { resetDb } from './helpers/reset-db';
 
 const DATABASE_URL = (): string => {
-  const url = process.env.TEST_DATABASE_URL;
-  if (!url) throw new Error('TEST_DATABASE_URL is not set');
+  const url = process.env.TEST_DB_URL;
+  if (!url) throw new Error('TEST_DB_URL is not set');
   return url;
 };
 
@@ -71,7 +71,7 @@ describe('migrations', () => {
         const { rows } = await scratch.query<{ n: number }>(
           'SELECT count(*)::int AS n FROM drizzle.__drizzle_migrations',
         );
-        expect(rows[0]?.n).toBe(7);
+        expect(rows[0]?.n).toBe(8);
       } finally {
         await scratch.end();
       }

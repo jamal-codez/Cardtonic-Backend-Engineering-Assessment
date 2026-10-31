@@ -1,0 +1,2620 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/v1/admin/reconciliation": {
+      "get": {
+        "description": "ADMIN endpoint. Unauthenticated in this sandbox: anyone who can reach the API can call it.",
+        "operationId": "ReconciliationController_latest",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The latest run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "id": "019a1c52-6c92-7e04-b5d7-3f1a9c2e7d64",
+                    "mode": "full",
+                    "started_at": "2026-01-01T00:00:00.000Z",
+                    "finished_at": "2026-01-01T00:00:00.000Z",
+                    "window_from": null,
+                    "accounts_checked": 10,
+                    "ok": true,
+                    "drift": [],
+                    "currency_net": {
+                      "cNGN": "0.000000",
+                      "cGHS": "0.000000",
+                      "cXAF": "0.000000",
+                      "USDx": "0.000000",
+                      "EURx": "0.000000"
+                    },
+                    "unbalanced_transactions": []
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "application/problem+json. Codes: NOT_FOUND.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "Route not found",
+                  "status": 404,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "NOT_FOUND",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Latest reconciliation run",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/reconciliation/run": {
+      "post": {
+        "description": "ADMIN endpoint. Unauthenticated in this sandbox: anyone who can reach the API can call it. Returns { \"skipped\": true } when another run is in progress.",
+        "operationId": "ReconciliationController_run",
+        "parameters": [
+          {
+            "name": "mode",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "full",
+              "type": "string",
+              "enum": [
+                "full",
+                "incremental"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The run, or { \"skipped\": true } when another run holds the lock",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "id": "019a1c52-6c92-7e04-b5d7-3f1a9c2e7d64",
+                    "mode": "full",
+                    "started_at": "2026-01-01T00:00:00.000Z",
+                    "finished_at": "2026-01-01T00:00:00.000Z",
+                    "window_from": null,
+                    "accounts_checked": 10,
+                    "ok": true,
+                    "drift": [],
+                    "currency_net": {
+                      "cNGN": "0.000000",
+                      "cGHS": "0.000000",
+                      "cXAF": "0.000000",
+                      "USDx": "0.000000",
+                      "EURx": "0.000000"
+                    },
+                    "unbalanced_transactions": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "application/problem+json. Codes: VALIDATION_ERROR.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:validation-error",
+                  "title": "Validation error",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "code": "VALIDATION_ERROR",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75",
+                  "errors": [
+                    {
+                      "field": "amount",
+                      "message": "amount must be a decimal string"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Run a reconciliation now (detects drift, never repairs it)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/fx/rates": {
+      "get": {
+        "description": "All 20 ordered pairs, as exact 12-decimal rates. The rates are simulated: see provider and source.",
+        "operationId": "FxController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The current rates (abridged example)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "base": "USD",
+                    "provider": "simulated",
+                    "source": "simulated",
+                    "as_of": "2026-01-01T00:00:00.000Z",
+                    "refreshed_at": "2026-01-01T00:00:00.000Z",
+                    "rates": [
+                      {
+                        "from": "cNGN",
+                        "to": "cGHS",
+                        "rate": "0.010000000000",
+                        "source": "simulated",
+                        "refreshed_at": "2026-01-01T00:00:00.000Z"
+                      },
+                      {
+                        "from": "cNGN",
+                        "to": "USDx",
+                        "rate": "0.000666666666",
+                        "source": "simulated",
+                        "refreshed_at": "2026-01-01T00:00:00.000Z"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "application/problem+json. Codes: FX_UNAVAILABLE. Carries a Retry-After header.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "FX rates unavailable",
+                  "status": 503,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "FX_UNAVAILABLE",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Current rate matrix",
+        "tags": [
+          "fx"
+        ]
+      }
+    },
+    "/v1/wallets": {
+      "post": {
+        "description": "Needs an email, a phone number or both. Creates one zero-balance account per supported coin. Email and phone are unique (email case-insensitively).",
+        "operationId": "WalletsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWalletDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Wallet created (Location header points at it)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "id": "019a1c52-3f10-7a31-8d52-0c4e6f1b2a90",
+                    "email": "ada@example.com",
+                    "phone": null,
+                    "status": "active",
+                    "created_at": "2026-01-01T00:00:00.000Z",
+                    "balances": [
+                      {
+                        "currency": "cNGN",
+                        "amount": "900000.000000"
+                      },
+                      {
+                        "currency": "cGHS",
+                        "amount": "0.000000"
+                      },
+                      {
+                        "currency": "cXAF",
+                        "amount": "0.000000"
+                      },
+                      {
+                        "currency": "USDx",
+                        "amount": "66.666666"
+                      },
+                      {
+                        "currency": "EURx",
+                        "amount": "0.000000"
+                      }
+                    ],
+                    "total_usd": {
+                      "amount": "66.66",
+                      "rates_as_of": "2026-01-01T00:00:00.000Z",
+                      "source": "simulated",
+                      "indicative": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "application/problem+json. Codes: VALIDATION_ERROR.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:validation-error",
+                  "title": "Validation error",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "code": "VALIDATION_ERROR",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75",
+                  "errors": [
+                    {
+                      "field": "amount",
+                      "message": "amount must be a decimal string"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "application/problem+json. Codes: WALLET_ALREADY_EXISTS.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "Wallet already exists",
+                  "status": 409,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "WALLET_ALREADY_EXISTS",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a wallet",
+        "tags": [
+          "wallets"
+        ]
+      }
+    },
+    "/v1/wallets/{id}": {
+      "get": {
+        "description": "Balances per coin plus an indicative USD total from the current rates.",
+        "operationId": "WalletsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The wallet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "id": "019a1c52-3f10-7a31-8d52-0c4e6f1b2a90",
+                    "email": "ada@example.com",
+                    "phone": null,
+                    "status": "active",
+                    "created_at": "2026-01-01T00:00:00.000Z",
+                    "balances": [
+                      {
+                        "currency": "cNGN",
+                        "amount": "900000.000000"
+                      },
+                      {
+                        "currency": "cGHS",
+                        "amount": "0.000000"
+                      },
+                      {
+                        "currency": "cXAF",
+                        "amount": "0.000000"
+                      },
+                      {
+                        "currency": "USDx",
+                        "amount": "66.666666"
+                      },
+                      {
+                        "currency": "EURx",
+                        "amount": "0.000000"
+                      }
+                    ],
+                    "total_usd": {
+                      "amount": "66.66",
+                      "rates_as_of": "2026-01-01T00:00:00.000Z",
+                      "source": "simulated",
+                      "indicative": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "application/problem+json. Codes: VALIDATION_ERROR.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:validation-error",
+                  "title": "Validation error",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "code": "VALIDATION_ERROR",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75",
+                  "errors": [
+                    {
+                      "field": "amount",
+                      "message": "amount must be a decimal string"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "application/problem+json. Codes: WALLET_NOT_FOUND.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "Wallet not found",
+                  "status": 404,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "WALLET_NOT_FOUND",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get a wallet",
+        "tags": [
+          "wallets"
+        ]
+      }
+    },
+    "/v1/wallets/{id}/deposits": {
+      "post": {
+        "description": "Credits the wallet from the external account. Sandbox only: nothing real moves. Never touches FX.",
+        "operationId": "DepositsController_create",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique per logical request (a UUID works). Retrying with the same key and body replays the original response and sets Idempotent-Replayed: true; the same key with a different body is 422 IDEMPOTENCY_KEY_REUSED.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2f6c1e0a-8d4b-4a53-9c1e-7b3a5d9f0e12"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDepositDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Deposit recorded (Location points at the transaction)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "transaction": {
+                      "id": "019a1c52-4a7e-7b6d-8f20-1d9c3e5a7b42",
+                      "type": "deposit",
+                      "source_currency": "cNGN",
+                      "source_amount": "1000000.000000",
+                      "dest_currency": "cNGN",
+                      "dest_amount": "1000000.000000",
+                      "created_at": "2026-01-01T00:00:00.000Z"
+                    },
+                    "balances_after": [
+                      {
+                        "currency": "cNGN",
+                        "amount": "900000.000000"
+                      },
+                      {
+                        "currency": "cGHS",
+                        "amount": "0.000000"
+                      },
+                      {
+                        "currency": "cXAF",
+                        "amount": "0.000000"
+                      },
+                      {
+                        "currency": "USDx",
+                        "amount": "66.666666"
+                      },
+                      {
+                        "currency": "EURx",
+                        "amount": "0.000000"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "application/problem+json. Codes: IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_INVALID, UNSUPPORTED_CURRENCY, VALIDATION_ERROR.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:validation-error",
+                  "title": "Validation error",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "code": "VALIDATION_ERROR",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75",
+                  "errors": [
+                    {
+                      "field": "amount",
+                      "message": "amount must be a decimal string"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "application/problem+json. Codes: WALLET_NOT_FOUND.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "Wallet not found",
+                  "status": 404,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "WALLET_NOT_FOUND",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "application/problem+json. Codes: AMOUNT_LIMIT_EXCEEDED, IDEMPOTENCY_KEY_REUSED.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "Amount limit exceeded",
+                  "status": 422,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "AMOUNT_LIMIT_EXCEEDED",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "application/problem+json. Codes: RETRY_LATER. Carries a Retry-After header.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "Temporarily unavailable, retry later",
+                  "status": 503,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "RETRY_LATER",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Simulated deposit",
+        "tags": [
+          "deposits"
+        ]
+      }
+    },
+    "/v1/wallets/{id}/swaps": {
+      "post": {
+        "description": "Converts at the current rate (or at the rate of quote_id), flooring the destination to 6 decimals. The rate, its source and its time are recorded on the transaction.",
+        "operationId": "SwapsController_create",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique per logical request (a UUID works). Retrying with the same key and body replays the original response and sets Idempotent-Replayed: true; the same key with a different body is 422 IDEMPOTENCY_KEY_REUSED.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2f6c1e0a-8d4b-4a53-9c1e-7b3a5d9f0e12"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSwapDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Swap executed (Location points at the transaction)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "transaction": {
+                      "id": "019a1c52-4a7e-7b6d-8f20-1d9c3e5a7b42",
+                      "type": "swap",
+                      "source_currency": "cNGN",
+                      "source_amount": "100000.000000",
+                      "dest_currency": "USDx",
+                      "dest_amount": "66.666666",
+                      "rate": "0.000666666666",
+                      "rate_source": "simulated",
+                      "rate_as_of": "2026-01-01T00:00:00.000Z",
+                      "created_at": "2026-01-01T00:00:00.000Z"
+                    },
+                    "balances_after": [
+                      {
+                        "currency": "cNGN",
+                        "amount": "900000.000000"
+                      },
+                      {
+                        "currency": "cGHS",
+                        "amount": "0.000000"
+                      },
+                      {
+                        "currency": "cXAF",
+                        "amount": "0.000000"
+                      },
+                      {
+                        "currency": "USDx",
+                        "amount": "66.666666"
+                      },
+                      {
+                        "currency": "EURx",
+                        "amount": "0.000000"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "application/problem+json. Codes: IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_INVALID, UNSUPPORTED_CURRENCY, SAME_CURRENCY_SWAP, VALIDATION_ERROR.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:validation-error",
+                  "title": "Validation error",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "code": "VALIDATION_ERROR",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75",
+                  "errors": [
+                    {
+                      "field": "amount",
+                      "message": "amount must be a decimal string"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "application/problem+json. Codes: WALLET_NOT_FOUND, QUOTE_NOT_FOUND.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "Wallet not found",
+                  "status": 404,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "WALLET_NOT_FOUND",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "application/problem+json. Codes: INSUFFICIENT_FUNDS, AMOUNT_TOO_SMALL, AMOUNT_LIMIT_EXCEEDED, WALLET_FROZEN, QUOTE_EXPIRED, QUOTE_USED, QUOTE_MISMATCH, IDEMPOTENCY_KEY_REUSED.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "Insufficient funds",
+                  "status": 422,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "INSUFFICIENT_FUNDS",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "application/problem+json. Codes: FX_UNAVAILABLE, RETRY_LATER. Carries a Retry-After header.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "FX rates unavailable",
+                  "status": 503,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "FX_UNAVAILABLE",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Swap one coin for another inside a wallet",
+        "tags": [
+          "swaps"
+        ]
+      }
+    },
+    "/v1/wallets/{id}/transfers": {
+      "post": {
+        "description": "Same-currency transfers never read an FX rate and keep working during an FX outage. Cross-currency transfers convert like a swap. balances_after is the sender.",
+        "operationId": "TransfersController_create",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique per logical request (a UUID works). Retrying with the same key and body replays the original response and sets Idempotent-Replayed: true; the same key with a different body is 422 IDEMPOTENCY_KEY_REUSED.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2f6c1e0a-8d4b-4a53-9c1e-7b3a5d9f0e12"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTransferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Transfer executed (Location points at the transaction)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "transaction": {
+                      "id": "019a1c52-4a7e-7b6d-8f20-1d9c3e5a7b42",
+                      "type": "transfer",
+                      "sender_wallet_id": "019a1c52-3f10-7a31-8d52-0c4e6f1b2a90",
+                      "receiver_wallet_id": "019a1c52-3f2b-7c04-9e17-5b8d2a6c4f31",
+                      "source_currency": "cNGN",
+                      "source_amount": "50000.000000",
+                      "dest_currency": "cGHS",
+                      "dest_amount": "500.000000",
+                      "rate": "0.010000000000",
+                      "rate_source": "simulated",
+                      "rate_as_of": "2026-01-01T00:00:00.000Z",
+                      "created_at": "2026-01-01T00:00:00.000Z"
+                    },
+                    "balances_after": [
+                      {
+                        "currency": "cNGN",
+                        "amount": "900000.000000"
+                      },
+                      {
+                        "currency": "cGHS",
+                        "amount": "0.000000"
+                      },
+                      {
+                        "currency": "cXAF",
+                        "amount": "0.000000"
+                      },
+                      {
+                        "currency": "USDx",
+                        "amount": "66.666666"
+                      },
+                      {
+                        "currency": "EURx",
+                        "amount": "0.000000"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "application/problem+json. Codes: IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_INVALID, UNSUPPORTED_CURRENCY, SELF_TRANSFER, VALIDATION_ERROR.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:validation-error",
+                  "title": "Validation error",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "code": "VALIDATION_ERROR",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75",
+                  "errors": [
+                    {
+                      "field": "amount",
+                      "message": "amount must be a decimal string"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "application/problem+json. Codes: WALLET_NOT_FOUND, RECIPIENT_NOT_FOUND, QUOTE_NOT_FOUND.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "Wallet not found",
+                  "status": 404,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "WALLET_NOT_FOUND",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "application/problem+json. Codes: INSUFFICIENT_FUNDS, AMOUNT_TOO_SMALL, AMOUNT_LIMIT_EXCEEDED, WALLET_FROZEN, QUOTE_EXPIRED, QUOTE_USED, QUOTE_MISMATCH, IDEMPOTENCY_KEY_REUSED.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "Insufficient funds",
+                  "status": 422,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "INSUFFICIENT_FUNDS",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "application/problem+json. Codes: FX_UNAVAILABLE, RETRY_LATER. Carries a Retry-After header.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "FX rates unavailable",
+                  "status": 503,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "FX_UNAVAILABLE",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Send coins to another wallet, converting when the currencies differ",
+        "tags": [
+          "transfers"
+        ]
+      }
+    },
+    "/v1/fx/quotes": {
+      "post": {
+        "description": "Pass the returned quote_id to a swap or a cross-currency transfer from the same wallet, for the same pair and amount. A quote works once and expires after FX_QUOTE_TTL_MS (default 30 seconds).",
+        "operationId": "QuotesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQuoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Quote created (Location header set)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "quote_id": "019a1c52-5b81-7d93-a4c6-2e0f8b1d6c53",
+                    "rate": "0.000666666666",
+                    "source_amount": "1500.000000",
+                    "destination_amount": "0.999999",
+                    "source": "simulated",
+                    "expires_at": "2026-01-01T00:00:30.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "application/problem+json. Codes: VALIDATION_ERROR, UNSUPPORTED_CURRENCY, SAME_CURRENCY_SWAP.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:validation-error",
+                  "title": "Validation error",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "code": "VALIDATION_ERROR",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75",
+                  "errors": [
+                    {
+                      "field": "amount",
+                      "message": "amount must be a decimal string"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "application/problem+json. Codes: WALLET_NOT_FOUND.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "Wallet not found",
+                  "status": 404,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "WALLET_NOT_FOUND",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "application/problem+json. Codes: AMOUNT_TOO_SMALL, AMOUNT_LIMIT_EXCEEDED.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "Amount too small",
+                  "status": 422,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "AMOUNT_TOO_SMALL",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "application/problem+json. Codes: FX_UNAVAILABLE. Carries a Retry-After header.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "FX rates unavailable",
+                  "status": 503,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "FX_UNAVAILABLE",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Lock the current rate for a short time",
+        "tags": [
+          "fx"
+        ]
+      }
+    },
+    "/v1/wallets/{id}/transactions": {
+      "get": {
+        "description": "Keyset pagination: pass next_cursor back as cursor. Optional filters: type, currency (either side).",
+        "operationId": "HistoryController_list",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "deposit",
+                "swap",
+                "transfer_in",
+                "transfer_out"
+              ]
+            }
+          },
+          {
+            "name": "currency",
+            "required": false,
+            "in": "query",
+            "description": "Matches either side of the activity",
+            "schema": {
+              "example": "cNGN",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Integer from 1 to 100, default 20",
+            "schema": {
+              "example": "20",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque value from the previous page",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of activity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "data": [
+                      {
+                        "transaction_id": "019a1c52-4a7e-7b6d-8f20-1d9c3e5a7b42",
+                        "type": "swap",
+                        "currency_out": "cNGN",
+                        "amount_out": "100000.000000",
+                        "currency_in": "USDx",
+                        "amount_in": "66.666666",
+                        "counterparty_wallet_id": null,
+                        "rate": "0.000666666666",
+                        "rate_source": "simulated",
+                        "created_at": "2026-01-01T00:00:00.000Z"
+                      }
+                    ],
+                    "next_cursor": null
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "application/problem+json. Codes: VALIDATION_ERROR, UNSUPPORTED_CURRENCY, INVALID_CURSOR.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:validation-error",
+                  "title": "Validation error",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "code": "VALIDATION_ERROR",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75",
+                  "errors": [
+                    {
+                      "field": "amount",
+                      "message": "amount must be a decimal string"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "application/problem+json. Codes: WALLET_NOT_FOUND.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "Wallet not found",
+                  "status": 404,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "WALLET_NOT_FOUND",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Wallet history, newest first",
+        "tags": [
+          "transactions"
+        ]
+      }
+    },
+    "/v1/transactions/{id}": {
+      "get": {
+        "description": "Includes the signed ledger entries; they sum to zero per currency.",
+        "operationId": "TransactionsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The transaction",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "id": "019a1c52-4a7e-7b6d-8f20-1d9c3e5a7b42",
+                    "type": "swap",
+                    "status": "completed",
+                    "initiator_wallet_id": "019a1c52-3f10-7a31-8d52-0c4e6f1b2a90",
+                    "counterparty_wallet_id": null,
+                    "source_currency": "cNGN",
+                    "source_amount": "100000.000000",
+                    "dest_currency": "USDx",
+                    "dest_amount": "66.666666",
+                    "rate": "0.000666666666",
+                    "rate_source": "simulated",
+                    "rate_as_of": "2026-01-01T00:00:00.000Z",
+                    "created_at": "2026-01-01T00:00:00.000Z",
+                    "entries": [
+                      {
+                        "account_kind": "user",
+                        "wallet_id": "019a1c52-3f10-7a31-8d52-0c4e6f1b2a90",
+                        "currency": "cNGN",
+                        "amount": "-100000.000000"
+                      },
+                      {
+                        "account_kind": "fx_pool",
+                        "wallet_id": null,
+                        "currency": "cNGN",
+                        "amount": "100000.000000"
+                      },
+                      {
+                        "account_kind": "fx_pool",
+                        "wallet_id": null,
+                        "currency": "USDx",
+                        "amount": "-66.666666"
+                      },
+                      {
+                        "account_kind": "user",
+                        "wallet_id": "019a1c52-3f10-7a31-8d52-0c4e6f1b2a90",
+                        "currency": "USDx",
+                        "amount": "66.666666"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "application/problem+json. Codes: VALIDATION_ERROR.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:validation-error",
+                  "title": "Validation error",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "code": "VALIDATION_ERROR",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75",
+                  "errors": [
+                    {
+                      "field": "amount",
+                      "message": "amount must be a decimal string"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "application/problem+json. Codes: TRANSACTION_NOT_FOUND.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "urn:problem:insufficient-funds"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Field errors, present for VALIDATION_ERROR",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "urn:problem:insufficient-funds",
+                  "title": "Transaction not found",
+                  "status": 404,
+                  "detail": "The wallet balance is too low for this amount",
+                  "code": "TRANSACTION_NOT_FOUND",
+                  "request_id": "019a1c52-7da3-7f15-8c68-4a2b0d3f8e75"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Transaction detail",
+        "tags": [
+          "transactions"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Operation Borderless API",
+    "description": "Multi-currency stablecoin wallet sandbox. Errors are application/problem+json with a stable `code`. Any route can also return NOT_FOUND (404), METHOD_NOT_ALLOWED (405), PAYLOAD_TOO_LARGE (413), RETRY_LATER (503, with Retry-After) or INTERNAL_ERROR (500). Amounts are strings with 6 decimals; timestamps are ISO 8601 UTC.",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "CreateWalletDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "ada@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "08031234567",
+            "description": "Parsed with region NG by default"
+          }
+        }
+      },
+      "CreateDepositDto": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "example": "cNGN",
+            "description": "Case-insensitive coin code"
+          },
+          "amount": {
+            "type": "string",
+            "example": "1000.50",
+            "description": "Decimal string, up to 6 decimals"
+          }
+        },
+        "required": [
+          "currency",
+          "amount"
+        ]
+      },
+      "CreateSwapDto": {
+        "type": "object",
+        "properties": {
+          "from_currency": {
+            "type": "string",
+            "example": "cNGN",
+            "description": "Coin being sold (case-insensitive)"
+          },
+          "to_currency": {
+            "type": "string",
+            "example": "USDx",
+            "description": "Coin being bought (case-insensitive)"
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500",
+            "description": "Exact amount of from_currency to sell: decimal string, up to 6 decimals"
+          },
+          "quote_id": {
+            "type": "string",
+            "example": "01a18e56-7952-729f-ab7d-cb9426c0fd98",
+            "description": "Execute at the rate locked by POST /v1/fx/quotes (single use, short-lived)"
+          }
+        },
+        "required": [
+          "from_currency",
+          "to_currency",
+          "amount"
+        ]
+      },
+      "CreateTransferDto": {
+        "type": "object",
+        "properties": {
+          "to_wallet_id": {
+            "type": "string",
+            "example": "01a18e56-7952-729f-ab7d-cb9426c0fd98",
+            "description": "Recipient wallet id"
+          },
+          "source_currency": {
+            "type": "string",
+            "example": "cNGN",
+            "description": "Coin the sender pays in (case-insensitive)"
+          },
+          "destination_currency": {
+            "type": "string",
+            "example": "cGHS",
+            "description": "Coin the recipient receives; defaults to source_currency"
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500",
+            "description": "Exact amount of source_currency to send: decimal string, up to 6 decimals"
+          },
+          "quote_id": {
+            "type": "string",
+            "example": "01a18e56-7952-729f-ab7d-cb9426c0fd98",
+            "description": "Execute at the rate locked by POST /v1/fx/quotes (single use, short-lived)"
+          }
+        },
+        "required": [
+          "to_wallet_id",
+          "source_currency",
+          "amount"
+        ]
+      },
+      "CreateQuoteDto": {
+        "type": "object",
+        "properties": {
+          "wallet_id": {
+            "type": "string",
+            "example": "01a18e56-7952-729f-ab7d-cb9426c0fd98",
+            "description": "Wallet the quote is for"
+          },
+          "from_currency": {
+            "type": "string",
+            "example": "cNGN",
+            "description": "Coin being sold (case-insensitive)"
+          },
+          "to_currency": {
+            "type": "string",
+            "example": "USDx",
+            "description": "Coin being bought (case-insensitive)"
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500",
+            "description": "Exact amount of from_currency to sell: decimal string, up to 6 decimals"
+          }
+        },
+        "required": [
+          "wallet_id",
+          "from_currency",
+          "to_currency",
+          "amount"
+        ]
+      }
+    }
+  }
+}

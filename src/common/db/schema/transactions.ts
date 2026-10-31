@@ -47,7 +47,7 @@ export const transactions = pgTable(
     check('transactions_dest_amount_positive', sql`${t.destAmount} > 0`),
     check(
       'transactions_rate_source_check',
-      sql`${t.rateSource} IS NULL OR ${t.rateSource} IN ('live', 'cached', 'static', 'quote')`,
+      sql`${t.rateSource} IS NULL OR ${t.rateSource} IN ('live', 'cached', 'static', 'simulated', 'quote')`,
     ),
   ],
 );
