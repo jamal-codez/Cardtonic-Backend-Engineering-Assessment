@@ -28,6 +28,8 @@ const baseSchema = z.object({
   FX_SIM_BAND_PCT: z.coerce.number().positive().max(90).default(30),
   /** A snapshot where any rate moved more than this many percent is rejected. */
   FX_MAX_MOVE_PCT: z.coerce.number().positive().max(100).default(20),
+  /** How long a locked quote stays usable. */
+  FX_QUOTE_TTL_MS: z.coerce.number().int().min(1000).max(600_000).default(30_000),
 });
 
 export const configSchema = baseSchema.refine(

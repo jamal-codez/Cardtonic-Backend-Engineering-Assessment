@@ -2,6 +2,7 @@ import type { AppConfig } from '../../common/config/config';
 import { AppError } from '../../common/errors/app-error';
 import type { IdempotencyService, WorkResult } from '../../idempotency/idempotency.service';
 import type { LedgerService } from '../../ledger/ledger.service';
+import type { QuotesService } from '../quotes/quotes.service';
 import type { ConversionService } from '../conversion/conversion.service';
 import { TransfersService } from './transfers.service';
 
@@ -36,6 +37,7 @@ function setup(options: { quoteError?: AppError } = {}) {
     { execute } as unknown as IdempotencyService,
     {} as LedgerService,
     { quoteForExecution } as unknown as ConversionService,
+    {} as QuotesService,
     CONFIG,
   );
   return { service, calls, quoteForExecution, execute, work: () => capturedWork };

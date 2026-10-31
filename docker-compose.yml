@@ -38,6 +38,7 @@ services:
       FX_SIM_MEDIUM_STEP_PCT: '1.5'
       FX_SIM_BAND_PCT: '30'
       FX_MAX_MOVE_PCT: '20'
+      FX_QUOTE_TTL_MS: '30000'
     ports:
       - '3000:3000'
 

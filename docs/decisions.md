@@ -317,3 +317,34 @@ Template for each entry: Context, Options, Decision, Consequences.
 - **Decision:** No retention job; about 48,000 rows a month is fine for a sandbox. `FX_PROVIDER` defaults to `simulated` (also in compose); `FX_PROVIDER=live` is no longer valid. `static` keeps fixed rates for demos that need them.
 - **Consequences:** The table grows without bound until a retention job is added.
 
+
+
+## D51. Quotes are rows, consumed inside the idempotency work
+
+- **Context:** A client wants a rate locked for 30 seconds and used exactly once.
+- **Decision:** `fx_quotes` stores wallet, pair, source and destination amounts, the 12-decimal rate, its source and `rate_as_of`, `expires_at` (Clock time plus `FX_QUOTE_TTL_MS`) and `used_at`. The table is mutable on purpose (the ledger tables stay append-only). A swap or cross-currency transfer with `quote_id` skips live pricing and, inside the idempotency work, locks the quote row (`FOR UPDATE`), checks it and sets `used_at`. It then posts at the stored rate and amounts and records `rate_source = quote` and `quote_id`.
+- **Consequences:** The execution amounts come from the row, never from the request, so a quote cannot buy more than it was issued for. `transactions.quote_id` has a partial unique index, so the database also refuses a second transaction for one quote. Quote creation reads the in-memory rates, never the network, and no rate is read inside a transaction.
+
+## D52. The idempotency claim comes before the quote check
+
+- **Context:** A client that did not see the response to a successful quoted swap will retry with the same key.
+- **Decision:** The quote is consumed inside `work`, which only runs after the key was claimed. A retry finds the stored response and returns it (`Idempotent-Replayed: true`) before any quote code runs. Checking the quote first would answer that retry with `QUOTE_USED` for the client's own success. Checks run in the order not found (404, key released), mismatch, used, expired (422, stored). A different `quote_id` on a reused key is `IDEMPOTENCY_KEY_REUSED`.
+- **Consequences:** A stored 422 rolls back to the savepoint, so `used_at` is not set: a swap that fails (insufficient funds, frozen wallet) does not burn the quote. A stored `QUOTE_USED` or `QUOTE_EXPIRED` replays unchanged under the same key.
+
+## D53. Lock order: quote row, then accounts
+
+- **Context:** Two requests on one quote, and requests on the same accounts, must not deadlock.
+- **Decision:** The quote row is locked first, the user accounts second in ascending id order (in `LedgerService.post`). A transaction holds at most one quote lock, so no cycle exists. Two simultaneous swaps on one quote with different keys serialise on the row: one gets 201, the other re-reads the committed row and gets `QUOTE_USED`.
+- **Consequences:** The loser waits for the winner's transaction, bounded by the 2 s lock timeout (then `RETRY_LATER`).
+
+## D54. Quotes use application time and are not tied to an operation
+
+- **Context:** Invariant 12 says stored timestamps come from the database, but quote expiry must be testable and comparable with the injected Clock.
+- **Decision:** `expires_at` is written from the Clock and compared with the Clock (`now >= expires_at` is expired); `created_at` and `used_at` use database time. A quote is bound to wallet, pair and amount, not to swap versus transfer, so either operation from that wallet can consume it. A `quote_id` on a same-currency transfer is a 400. A wrong-wallet quote answers `QUOTE_MISMATCH`, an unknown id `QUOTE_NOT_FOUND`, which reveals whether an id exists for another wallet (accepted: there is no authentication model).
+- **Consequences:** The Clock and the database clock can differ by seconds; for a 30 s lock that is acceptable.
+
+## D55. What a quote costs the platform
+
+- **Context:** A quote protects the user from the rate moving between seeing it and paying.
+- **Decision:** It is a free option for the user: they can quote and execute only when the market moved in their favour, and the platform carries the rate risk for up to the TTL (default 30 s, at most 10 minutes). The quoted amount is bound and `rate_as_of` is recorded. No limits, spread or purge are built: expired rows stay in `fx_quotes` and `POST /v1/fx/quotes` has no rate limit.
+- **Consequences:** A real platform would add a spread or a short TTL tied to volatility, per-wallet limits on open quotes and a job that deletes expired rows.

@@ -1,7 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, Matches, ValidateIf } from 'class-validator';
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { UUID_PATTERN } from '../../../common/http/uuid-param.pipe';
 
 export class CreateTransferDto {
   @ApiProperty({
@@ -31,4 +30,14 @@ export class CreateTransferDto {
   })
   @IsString()
   amount!: string;
+
+  @ApiPropertyOptional({
+    example: '01a18e56-7952-729f-ab7d-cb9426c0fd98',
+    description: 'Execute at the rate locked by POST /v1/fx/quotes (single use, short-lived)',
+  })
+  // Only a missing field is optional: null must fail validation rather than reach the service.
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @Matches(UUID_PATTERN, { message: 'quote_id must be a UUID' })
+  quote_id?: string;
 }

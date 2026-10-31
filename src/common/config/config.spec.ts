@@ -43,6 +43,15 @@ describe('loadConfig', () => {
     });
   });
 
+  it('keeps a quote for 30 seconds by default and bounds the setting', () => {
+    expect(loadConfig({ DATABASE_URL: 'x' }).FX_QUOTE_TTL_MS).toBe(30_000);
+    expect(loadConfig({ DATABASE_URL: 'x', FX_QUOTE_TTL_MS: '5000' }).FX_QUOTE_TTL_MS).toBe(5000);
+    expect(() => loadConfig({ DATABASE_URL: 'x', FX_QUOTE_TTL_MS: '10' })).toThrow(ConfigError);
+    expect(() => loadConfig({ DATABASE_URL: 'x', FX_QUOTE_TTL_MS: '9999999' })).toThrow(
+      ConfigError,
+    );
+  });
+
   it('rejects settings that would make the feed fail its own validation', () => {
     const base = { DATABASE_URL: 'x' };
     // a medium step bigger than the move limit would be rejected on arrival

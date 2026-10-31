@@ -15,6 +15,7 @@ import { hashRequest } from '../../idempotency/request-hash';
 import { LedgerService } from '../../ledger/ledger.service';
 import { ConversionService, type ConversionQuote } from '../conversion/conversion.service';
 import { toPaymentResource } from '../payment.mapper';
+import { QuotesService } from '../quotes/quotes.service';
 import type { CreateTransferDto } from './dto/create-transfer.dto';
 
 type ResolvedQuote = { ok: true; quote: ConversionQuote } | { ok: false; error: unknown };
@@ -27,6 +28,8 @@ interface TransferPlan {
   amount: bigint;
   /** Null for a same-currency transfer, which never involves FX. */
   conversion: ResolvedQuote | null;
+  /** A quote to consume instead of pricing (cross-currency only). */
+  quoteId: string | null;
 }
 
 /**
@@ -43,6 +46,7 @@ export class TransfersService {
     private readonly idempotency: IdempotencyService,
     private readonly ledger: LedgerService,
     private readonly conversion: ConversionService,
+    private readonly quotes: QuotesService,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -61,6 +65,13 @@ export class TransfersService {
     const source = parseCurrency(dto.source_currency);
     const destination = parseCurrency(dto.destination_currency ?? dto.source_currency);
     const amount = parseAmount(dto.amount, this.config.MAX_TX_AMOUNT);
+    const quoteId = dto.quote_id?.toLowerCase() ?? null;
+    if (quoteId && source === destination) {
+      // A same-currency transfer never involves FX, so there is nothing a quote could lock.
+      throw new AppError('VALIDATION_ERROR', {
+        detail: 'quote_id applies to cross-currency transfers only',
+      });
+    }
 
     const scope = `wallet:${senderId}:POST /v1/wallets/:id/transfers`;
     const requestHash = hashRequest(scope, {
@@ -68,6 +79,8 @@ export class TransfersService {
       source_currency: source,
       destination_currency: destination,
       amount: formatAmount(amount),
+      // Only when present, so the hash of a transfer without a quote is unchanged.
+      ...(quoteId ? { quote_id: quoteId } : {}),
     });
 
     // Cross-currency only: resolve the rate before any database transaction opens. Its failure is
@@ -79,7 +92,9 @@ export class TransfersService {
       source,
       destination,
       amount,
-      conversion: source === destination ? null : this.resolveQuote(source, destination, amount),
+      conversion:
+        source === destination || quoteId ? null : this.resolveQuote(source, destination, amount),
+      quoteId,
     };
 
     return this.idempotency.execute(scope, key, requestHash, (tx) => this.work(tx, plan, key), {
@@ -107,8 +122,21 @@ export class TransfersService {
     if (!ids.has(senderId)) throw new AppError('WALLET_NOT_FOUND');
     if (!ids.has(receiverId)) throw new AppError('RECIPIENT_NOT_FOUND');
 
-    if (plan.conversion && !plan.conversion.ok) throw plan.conversion.error;
-    const quote = plan.conversion?.ok ? plan.conversion.quote : null;
+    // A quote is consumed after the idempotency claim (a retry of a success must replay, not hit
+    // QUOTE_USED). Lock order: the quote row first, then the accounts in ascending id order.
+    let quote: ConversionQuote | null;
+    if (plan.quoteId) {
+      quote = await this.quotes.consume(tx, {
+        quoteId: plan.quoteId,
+        walletId: senderId,
+        from: source,
+        to: destination,
+        sourceMinor: amount,
+      });
+    } else {
+      if (plan.conversion && !plan.conversion.ok) throw plan.conversion.error;
+      quote = plan.conversion?.ok ? plan.conversion.quote : null;
+    }
     const destAmount = quote ? quote.destMinor : amount;
 
     const [senderAccount] = await this.ledger.getUserAccounts(senderId, [source], tx);
@@ -147,7 +175,12 @@ export class TransfersService {
         destCurrency: destination,
         destAmount,
         ...(quote
-          ? { rate: quote.rate, rateSource: quote.rateSource, rateAsOf: quote.rateAsOf }
+          ? {
+              rate: quote.rate,
+              rateSource: quote.rateSource,
+              rateAsOf: quote.rateAsOf,
+              ...(quote.quoteId ? { quoteId: quote.quoteId } : {}),
+            }
           : {}),
         idempotencyKey: key,
       },
@@ -187,6 +220,7 @@ export class TransfersService {
                   rate: quote.rate,
                   rateSource: quote.rateSource,
                   rateAsOf: quote.rateAsOf,
+                  ...(quote.quoteId ? { quoteId: quote.quoteId } : {}),
                 },
               }
             : {}),

@@ -17,6 +17,8 @@ export interface PaymentResource {
     rate?: string;
     rate_source?: string;
     rate_as_of?: string;
+    /** Present only when the conversion executed a quote. */
+    quote_id?: string;
     created_at: string;
   };
   balances_after: BalanceResource[];
@@ -28,7 +30,7 @@ export interface PaymentDetails {
   parties?: { senderWalletId: string; receiverWalletId: string };
   source: { currency: string; amount: bigint };
   dest: { currency: string; amount: bigint };
-  conversion?: { rate: string; rateSource: string; rateAsOf: Date };
+  conversion?: { rate: string; rateSource: string; rateAsOf: Date; quoteId?: string };
 }
 
 /** Response body shared by deposits and swaps; swaps add the recorded rate and its provenance. */
@@ -56,6 +58,7 @@ export function toPaymentResource(
             rate: details.conversion.rate,
             rate_source: details.conversion.rateSource,
             rate_as_of: details.conversion.rateAsOf.toISOString(),
+            ...(details.conversion.quoteId ? { quote_id: details.conversion.quoteId } : {}),
           }
         : {}),
       created_at: posted.createdAt.toISOString(),

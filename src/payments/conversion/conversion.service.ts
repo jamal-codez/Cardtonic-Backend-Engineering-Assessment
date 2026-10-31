@@ -12,8 +12,11 @@ export interface ConversionQuote {
   destMinor: bigint;
   /** Exactly 12 decimals: the string that was used and is recorded. */
   rate: string;
-  rateSource: RateQuote['source'];
+  /** `quote` when the rate was locked earlier by a quote; otherwise the feed that produced it. */
+  rateSource: RateQuote['source'] | 'quote';
   rateAsOf: Date;
+  /** Set when the conversion executes a quote. */
+  quoteId?: string;
 }
 
 /**
