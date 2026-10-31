@@ -119,10 +119,10 @@ sequenceDiagram
     DB-->>API: stored response
     API-->>C: stored status and body, Idempotent-Replayed: true
   else claimed now
-    API->>DB: SAVEPOINT; check both wallets exist
+    API->>DB: SAVEPOINT, then check both wallets exist
     API->>DB: SELECT ... FOR UPDATE user accounts, ascending id
     API->>DB: check balance and frozen status
-    API->>DB: INSERT transaction, 4 entries, 2 activity rows; UPDATE balances
+    API->>DB: INSERT transaction, 4 entries, 2 activity rows, then UPDATE balances
     API->>DB: store response against the key
     API->>DB: COMMIT (deferred trigger checks entries sum to zero)
     API-->>C: 201 + Location
